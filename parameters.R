@@ -4,23 +4,30 @@
 # haem_pop = S_hm + E_hm + I_hm
 # aedes_pop = S_aa + E_aa + I_aa
 
+# set up time sequence for simulation
+start_date <- as.Date('2016-12-15')
+end_date <- as.Date('2018-12-15')
+yfv_epidemic <- seq.Date(start_date, end_date, by = 'days')
+times <- seq(from = 1, to = length(yfv_epidemic), by = 1)
+
 # source other parameter values
 p <- read.csv('parameter_values.csv')
 
-start_vaccinated <- 0.5
-final_vaccinated <- 0.9
+# vaccination rate
+start_vaccinated <- p$value[p$variable == 'initial_v']
+final_vaccinated <- p$value[p$variable == 'final_v']
 vaccination_rate <- (final_vaccinated - start_vaccinated)/length(times)
 
+# carrying capacity
+K_dry <- mosquitoes
+# (Dec - April)
+K_wet <- K_dry * 6
+
+k <- ifelse(as.numeric(format(yfv_epidemic, '%m')) > 5 & as.numeric(format(yfv_epidemic, '%m')) < 11, K_dry, K_wet)
 
 # list parameters
 yfv_params <- list(
-  # N_p = 10000
-  # , N_h = 10000
-  # , N_hm = 25000
-  # , N_aa = 25000
-   sigma_hm = p$value[p$variable == 'mu_hm'] # sigma
-  , sigma_aa = p$value[p$variable == 'mu_aa'] # sigma
-  , a1 = rnorm(n = length(times), mean = 0.5, sd = 0.4)#c(0.7, length(times))
+  a1 = rnorm(n = length(times), mean = 0.5, sd = 0.4)#c(0.7, length(times))
   # , a1 = p$value[p$variable == 'a1']
   , a2 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.35, length(times))
   # , a2 = p$value[p$variable == 'a2']
@@ -43,5 +50,5 @@ yfv_params <- list(
   , delta_h = p$value[p$variable == 'delta_h']
   , p = p$value[p$variable == 'p']
   , V = vaccination_rate#p$value[p$variable == 'V']
-  , K = mosquitoes
+  , K = k
 )

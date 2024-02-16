@@ -1,8 +1,3 @@
-# set up time sequence for simulation
-start_date <- as.Date('2016-12-15')
-end_date <- as.Date('2018-12-15')
-yfv_epidemic <- seq.Date(start_date, end_date, by = 'days')
-times <- seq(from = 1, to = length(yfv_epidemic), by = 1)
 
 # source model and data
 source('model.R')
@@ -31,18 +26,17 @@ report = 0.10
 # symptomatic cases
 sum(out$I_h)*report
 # deaths
-sum(out$I_h)*p$value[p$variable=='V']
+sum(out$I_h)*p$value[p$variable=='mu_v2']
 # primates infected
 sum(out$I_p)
 
+par(mfrow = c(2,2), mar = c(2.5,4,1,1))
+plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates')
+plot(yfv_epidemic, out$I_h, type = 'l', ylab = 'Inf people')
 
-par(mfrow = c(2,1), mar = c(2.5,4,1,1))
-plot(out$I_p, type = 'l')
-plot(out$I_h, type = 'l')
 
-
-plot(out$I_hm, type = 'l')
-plot(out$I_aa, type = 'l')
+plot(yfv_epidemic, out$I_hm, type = 'l', ylab = 'Inf Hm')
+plot(yfv_epidemic, out$I_aa, type = 'l', ylab = 'Inf aa')
 plot(out$E_hm, type = 'l')
 plot(out$S_hm, type = 'l')
 plot(out$S_aa, type = 'l')
