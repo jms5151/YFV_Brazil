@@ -18,27 +18,14 @@ start_vaccinated <- p$value[p$variable == 'initial_v']
 final_vaccinated <- p$value[p$variable == 'final_v']
 vaccination_rate <- (final_vaccinated - start_vaccinated)/length(times)
 
-# carrying capacity
+# carrying capacity, model using cosine wave
+frequency <- 4*pi/length(times)
+days <- seq(1, length(times), by = 1)
 K_dry <- mosquitoes
-# (Dec - April)
-K_wet <- K_dry * 6
-
-k <- ifelse(as.numeric(format(yfv_epidemic, '%m')) > 5 & as.numeric(format(yfv_epidemic, '%m')) < 11, K_dry, K_wet)
-
-
-# Define parameters
-# x <- 10  # Maximum value
-# y <- 2   # Minimum value
-# n_points <- 100  # Number of points in the wave
-# frequency <- 2*pi/12  # Frequency for seasonal cycle (12 months in a year)
-# 
-# # Generate cosine wave
-# time <- seq(0, 2*pi, length.out = length(yfv_epidemic))  # Time points
-# cos_wave <- (K_wet + K_dry)/2 + (K_wet - K_dry)/2 * cos(time * frequency)
-# 
-# # Plot the wave
-# plot(cos_wave, type = 'l', col = 'blue', xlab = 'Time', ylab = 'Value', main = 'Seasonal Cosine Wave')
-
+K_wet <- K_dry * 6 # (Dec - April)
+k <- (K_wet + K_dry)/2 + (K_wet - K_dry)/2 * cos(days * frequency)
+# Plot the wave
+# plot(yfv_epidemic, cos_wave, type = 'l', col = 'blue', xlab = 'Day', ylab = 'Value')
 
 # list parameters
 yfv_params <- list(
