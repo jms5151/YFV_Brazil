@@ -20,11 +20,12 @@ yfv_params <- list(
   # , N_aa = 25000
    sigma_hm = p$value[p$variable == 'sigma_hm']
   , sigma_aa = p$value[p$variable == 'sigma_aa']
-  , a1 = rnorm(n = length(times), mean = 0.5, sd = 0.4)#c(0.6, length(times))
+  , a1 = rnorm(n = length(times), mean = 0.5, sd = 0.4)#c(0.7, length(times))
   # , a1 = p$value[p$variable == 'a1']
-  , a2 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.6, length(times))
+  , a2 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.35, length(times))
   # , a2 = p$value[p$variable == 'a2']
-  , a3 = p$value[p$variable == 'a3']
+  , a3 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.35, length(times))
+  # , a3 = p$value[p$variable == 'a3']
   , b = p$value[p$variable == 'b']
   , pMI1 = p$value[p$variable == 'pMI1']
   , pMI2 = p$value[p$variable == 'pMI2']
