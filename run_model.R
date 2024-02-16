@@ -34,7 +34,7 @@ sum(out$I_h)*p$value[p$variable=='V']
 sum(out$I_p)
 
 
-par(mfrow = c(2,1), mar = c(2.5,1,1,1))
+par(mfrow = c(2,1), mar = c(2.5,4,1,1))
 plot(out$I_p, type = 'l')
 plot(out$I_h, type = 'l')
 
