@@ -25,6 +25,21 @@ K_wet <- K_dry * 6
 
 k <- ifelse(as.numeric(format(yfv_epidemic, '%m')) > 5 & as.numeric(format(yfv_epidemic, '%m')) < 11, K_dry, K_wet)
 
+
+# Define parameters
+# x <- 10  # Maximum value
+# y <- 2   # Minimum value
+# n_points <- 100  # Number of points in the wave
+# frequency <- 2*pi/12  # Frequency for seasonal cycle (12 months in a year)
+# 
+# # Generate cosine wave
+# time <- seq(0, 2*pi, length.out = length(yfv_epidemic))  # Time points
+# cos_wave <- (K_wet + K_dry)/2 + (K_wet - K_dry)/2 * cos(time * frequency)
+# 
+# # Plot the wave
+# plot(cos_wave, type = 'l', col = 'blue', xlab = 'Time', ylab = 'Value', main = 'Seasonal Cosine Wave')
+
+
 # list parameters
 yfv_params <- list(
   a1 = rnorm(n = length(times), mean = 0.5, sd = 0.4)#c(0.7, length(times))
