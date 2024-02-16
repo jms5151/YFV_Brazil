@@ -2,9 +2,7 @@
 start_date <- as.Date('2016-12-15')
 end_date <- as.Date('2018-12-15')
 yfv_epidemic <- seq.Date(start_date, end_date, by = 'days')
-
-years <- 3
-times <- seq(from = 1, to = 360 * years, by = 1)
+times <- seq(from = 1, to = length(yfv_epidemic), by = 1)
 
 # source model and data
 source('model.R')
