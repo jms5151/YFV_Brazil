@@ -42,12 +42,12 @@ k <- ifelse(as.numeric(format(yfv_epidemic, '%m')) > 5 & as.numeric(format(yfv_e
 
 # list parameters
 yfv_params <- list(
-  a1 = rnorm(n = length(times), mean = 0.5, sd = 0.4)#c(0.7, length(times))
-  # , a1 = p$value[p$variable == 'a1']
-  , a2 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.35, length(times))
-  # , a2 = p$value[p$variable == 'a2']
-  , a3 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.35, length(times))
-  # , a3 = p$value[p$variable == 'a3']
+  # a1 = rnorm(n = length(times), mean = 0.5, sd = 0.4)#c(0.7, length(times))
+  a1 = rep(p$value[p$variable == 'a1'], length(times))
+  # , a2 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.35, length(times))
+  , a2 = rep(p$value[p$variable == 'a2'], length(times))
+  # , a3 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.35, length(times))
+  , a3 = rep(p$value[p$variable == 'a3'], length(times))
   , b = p$value[p$variable == 'b']
   , pMI1 = p$value[p$variable == 'pMI1']
   , pMI2 = p$value[p$variable == 'pMI2']

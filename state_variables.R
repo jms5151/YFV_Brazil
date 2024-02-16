@@ -3,8 +3,8 @@ sprop = 0.999
 Iprop = 0.001
 # eprop = rprop = 0
 monkeys = 16500 #15-20,000
-humans = 20000000
-mosquitoes = 25000
+humans = 2700000#20000000
+mosquitoes = 2*humans#25000
 none = 0
 vaccinated = 0.5
 
