@@ -14,9 +14,16 @@ times <- seq(from = 1, to = length(yfv_epidemic), by = 1)
 p <- read.csv('parameter_values.csv')
 
 # vaccination rate
-start_vaccinated <- p$value[p$variable == 'initial_v']
-final_vaccinated <- p$value[p$variable == 'final_v']
-vaccination_rate <- (final_vaccinated - start_vaccinated)/length(times)
+vax_campaign_start <- as.Date('2018-02-25')
+prevaxtimes <- as.numeric(difftime(vax_campaign_start, start_date))
+postvac_times <- length(times) - prevaxtimes
+
+start_pop_vaccinated <- p$value[p$variable == 'initial_v']
+end_pop_vaccinated <- p$value[p$variable == 'final_v']
+
+vaccination_rate <- (end_pop_vaccinated - start_pop_vaccinated)/postvac_times
+
+v_ts <- c(rep(0, prevaxtimes), rep(vaccination_rate, postvac_times))
 
 # carrying capacity, model using cosine wave
 frequency <- 4*pi/length(times)
@@ -51,6 +58,6 @@ yfv_params <- list(
   , gamma_h = p$value[p$variable == 'gamma_h']
   , delta_h = p$value[p$variable == 'delta_h']
   , p = p$value[p$variable == 'p']
-  , V = vaccination_rate#p$value[p$variable == 'V']
+  , V = v_ts#vaccination_rate
   , K = k
 )

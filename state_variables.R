@@ -23,4 +23,3 @@ state_start <- c(
   , E_aa = none
   , I_aa = none
 )
-

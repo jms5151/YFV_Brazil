@@ -1,5 +1,3 @@
-#HELLO WORLD
-
 library(deSolve)
 
 source('biting_rate_drought_functions.R')
@@ -12,10 +10,10 @@ yfv_model <- function(t, state, parameters) {
     dR_p <- ((gamma_p * I_p) * (1-mu_v1)) - (mu_p * R_p)
     
     # Humans
-    dS_h <- -((a2[t] * (1-p) * b * (I_hm / (S_h + E_h + I_h + R_h))) * S_h) - ((a3[t] * b * (I_aa / (S_h + E_h + I_h + R_h))) * S_h) - (V * S_h) + (mu_h * (E_h + I_h + R_h))
+    dS_h <- -((a2[t] * (1-p) * b * (I_hm / (S_h + E_h + I_h + R_h))) * S_h) - ((a3[t] * b * (I_aa / (S_h + E_h + I_h + R_h))) * S_h) - (V[t] * S_h) + (mu_h * (E_h + I_h + R_h))
     dE_h <- ((a2[t] * (1-p) * b * (I_hm / (S_h + E_h + I_h + R_h))) * S_h)  + ((a3[t] * b * (I_aa / (S_h + E_h + I_h + R_h))) * S_h) - (delta_h * E_h) - (mu_h * E_h)
     dI_h <- (delta_h * E_h) - (gamma_h * I_h) - (mu_h * I_h)
-    dR_h <- ((gamma_h * I_h) * (1-mu_v2)) + (V * S_h) - (mu_h * R_h)
+    dR_h <- ((gamma_h * I_h) * (1-mu_v2)) + (V[t] * S_h) - (mu_h * R_h)
     
     # Haemagogus mosquitoes
     dS_hm <- -((a1[t] * p * pMI1 * (I_p / (S_p + I_p + R_p))) * S_hm) - ((a2[t] * (1-p) * pMI2 * (I_h / (S_h + E_h + I_h + R_h))) * S_hm) + max(0, ((mu_hm * (E_hm + I_hm)) * (1 - (S_hm + E_hm + I_hm)/K[t])))
@@ -30,4 +28,3 @@ yfv_model <- function(t, state, parameters) {
     list(c(dS_p, dI_p, dR_p, dS_h, dE_h, dI_h, dR_h, dS_hm, dE_hm, dI_hm, dS_aa, dE_aa, dI_aa))
   })
 } 
-

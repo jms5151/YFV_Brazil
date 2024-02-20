@@ -2,6 +2,7 @@
 source('model.R')
 source('state_variables.R')
 source('parameters.R')
+source('biting_rate_drought_functions.R')
 
 # run model
 out <- as.data.frame(
