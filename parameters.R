@@ -14,7 +14,7 @@ times <- seq(from = 1, to = length(yfv_epidemic), by = 1)
 p <- read.csv('parameter_values.csv')
 
 # vaccination rate
-vax_campaign_start <- as.Date('2018-02-25')
+vax_campaign_start <- as.Date('2018-02-25') + 30
 prevaxtimes <- as.numeric(difftime(vax_campaign_start, start_date))
 postvac_times <- length(times) - prevaxtimes
 
@@ -34,13 +34,20 @@ k <- (K_wet + K_dry)/2 + (K_wet - K_dry)/2 * cos(days * frequency)
 # Plot the wave
 # plot(yfv_epidemic, cos_wave, type = 'l', col = 'blue', xlab = 'Day', ylab = 'Value')
 
+# drought index
+source('format_drought_data.R')
+spei <- subset(spei, Date >= start_date & Date <= end_date) 
+
+# biting rates
+source('biting_rate_drought_functions.R')
+
 # list parameters
 yfv_params <- list(
-  # a1 = rnorm(n = length(times), mean = 0.5, sd = 0.4)#c(0.7, length(times))
-  a1 = rep(p$value[p$variable == 'a1'], length(times))
-  # , a2 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.35, length(times))
-  , a2 = rep(p$value[p$variable == 'a2'], length(times))
-  # , a3 = rnorm(n = length(times), mean = 0.4, sd = 0.2)#c(0.35, length(times))
+  a1 = sapply(spei$Drought, function(x) a1(x))
+  # a1 = rep(p$value[p$variable == 'a1'], length(times))
+  , a2 = sapply(spei$Drought, function(x) a2(x))
+  # , a2 = rep(p$value[p$variable == 'a2'], length(times))
+  # , a3 = sapply(spei$Drought, function(x) a3(x))
   , a3 = rep(p$value[p$variable == 'a3'], length(times))
   , b = p$value[p$variable == 'b']
   , pMI1 = p$value[p$variable == 'pMI1']
@@ -50,7 +57,7 @@ yfv_params <- list(
   , PDR_aa = p$value[p$variable == 'PDR_aa']
   , mu_hm = p$value[p$variable == 'mu_hm']
   , mu_aa = p$value[p$variable == 'mu_aa']
-  , mu_p = p$value[p$variable == 'mu_p']
+  , mu_p = p$value[p$variable == 'mu_p'] # multiplying by 5 or 10 helps
   , mu_h = p$value[p$variable == 'mu_h']
   , mu_v1 = p$value[p$variable == 'mu_v1']
   , mu_v2 = p$value[p$variable == 'mu_v2']
@@ -58,6 +65,7 @@ yfv_params <- list(
   , gamma_h = p$value[p$variable == 'gamma_h']
   , delta_h = p$value[p$variable == 'delta_h']
   , p = p$value[p$variable == 'p']
-  , V = v_ts#vaccination_rate
+  , V = v_ts
   , K = k
-)
+  # , w = 1/(10*365) # waning immunity
+  )

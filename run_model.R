@@ -45,3 +45,17 @@ plot(yfv_epidemic, out$R_h, type = 'l')
 
 plot(yfv_epidemic, out$S_p, type = 'l')
 
+out <- out_no_spei_effect
+par(mfrow = c(2,2), mar = c(2.5,4,1,1))
+plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates')
+lines(yfv_epidemic, out_no_spei_effect$I_p, col = 'orange')
+
+plot(yfv_epidemic, out$I_h, type = 'l', ylab = 'Inf people')
+lines(yfv_epidemic, out_no_spei_effect$I_h, col = 'orange')
+
+plot(yfv_epidemic, out$I_hm, type = 'l', ylab = 'Inf Hm')
+lines(yfv_epidemic, out_no_spei_effect$I_hm, col = 'orange') 
+
+plot(yfv_epidemic, out$I_aa, type = 'l', ylab = 'Inf aa')
+lines(yfv_epidemic, out_no_spei_effect$I_aa, col = 'orange') 
+

@@ -7,11 +7,12 @@ humans = 2700000#20000000
 mosquitoes = 25000
 none = 0
 vaccinated = 0.5
+natimm = 0.5
 
 state_start <- c(
-  S_p = monkeys*sprop
+  S_p = monkeys*sprop #- (monkeys * natimm)
   , I_p = monkeys*Iprop
-  , R_p = none
+  , R_p = none #monkeys * natimm
   , S_h = humans*(1-vaccinated)
   , E_h = none
   , I_h = none
