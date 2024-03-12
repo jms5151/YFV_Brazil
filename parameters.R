@@ -32,7 +32,7 @@ K_dry <- mosquitoes
 K_wet <- K_dry * 6 # (Dec - April)
 k <- (K_wet + K_dry)/2 + (K_wet - K_dry)/2 * cos(days * frequency)
 # Plot the wave
-# plot(yfv_epidemic, cos_wave, type = 'l', col = 'blue', xlab = 'Day', ylab = 'Value')
+# plot(yfv_epidemic, k, type = 'l', col = 'blue', xlab = 'Day', ylab = 'Value')
 
 # drought index
 source('format_drought_data.R')
@@ -53,16 +53,20 @@ yfv_params <- list(
   , pMI1 = p$value[p$variable == 'pMI1']
   , pMI2 = p$value[p$variable == 'pMI2']
   , pMI3 = p$value[p$variable == 'pMI3']
+  , pMI4 = p$value[p$variable == 'pMI4']
   , PDR_hm = p$value[p$variable == 'PDR_hm']
   , PDR_aa = p$value[p$variable == 'PDR_aa']
   , mu_hm = p$value[p$variable == 'mu_hm']
   , mu_aa = p$value[p$variable == 'mu_aa']
   , mu_p = p$value[p$variable == 'mu_p'] # multiplying by 5 or 10 helps
   , mu_h = p$value[p$variable == 'mu_h']
+  , mu_c = p$value[p$variable == 'mu_c']
   , mu_v1 = p$value[p$variable == 'mu_v1']
   , mu_v2 = p$value[p$variable == 'mu_v2']
+  , mu_v3 = p$value[p$variable == 'mu_v3']
   , gamma_p = p$value[p$variable == 'gamma_p']
   , gamma_h = p$value[p$variable == 'gamma_h']
+  , gamma_c = p$value[p$variable == 'gamma_c']/10
   , delta_h = p$value[p$variable == 'delta_h']
   , p = p$value[p$variable == 'p']
   , V = v_ts
