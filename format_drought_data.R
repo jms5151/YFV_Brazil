@@ -21,4 +21,4 @@ expand_df <- function(df) {
 
 # Expand the data frame
 spei <- expand_df(spei)
-plot(spei$Date, spei$Drought, type = 'l', ylab = 'Inverse SPEI', xlab = 'Date')
+# plot(spei$Date, spei$Drought, type = 'l', ylab = 'Inverse SPEI', xlab = 'Date')
