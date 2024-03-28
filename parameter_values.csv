@@ -2,7 +2,7 @@ variable,definition,value,comments
 a1,Biting rate of Haemogogus mosqutioes on primates,0.7,
 a2,Biting rate of Haemogogus mosqutioes on humans,0.35,
 a3,Biting rate of Aedes mosquitoes on humans,0.7,
-pMI1,Probability of Haemogogus infection given a bite on infectious primate,0.5,
+pMI1,Probability of Haemogogus infection given a bite on infectious primate,0.2,
 pMI2,Probability of Haemogogus infection given a bite on infectious human,0.25,
 pMI3,Probability of Aedes infection given a bite on infectious human,0.25,
 pMI4,Probability of Haemogogus infection given a bite on infectious marmoset,0.125,

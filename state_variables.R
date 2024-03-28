@@ -3,17 +3,17 @@ sprop = 0.999
 Iprop = 0.001
 # eprop = rprop = 0
 humans = 2700000#20000000
-monkeys = humans/3000 #16500 #15-20,000
+monkeys = humans/3000#16500 #15-20,000
 mosquitoes = 25000
 marmosets = monkeys * 2
 none = 0
 vaccinated = 0.5
-natimm = 0.5
+natimm = 0.1
 
 state_start <- c(
-  S_p = monkeys*sprop #- (monkeys * natimm)
+  S_p = monkeys*natimm
   , I_p = monkeys*Iprop
-  , R_p = none #monkeys * natimm
+  , R_p = monkeys*(1-natimm)
   , S_c = marmosets*sprop
   , I_c = marmosets*Iprop
   , R_c = none

@@ -21,4 +21,5 @@ expand_df <- function(df) {
 
 # Expand the data frame
 spei <- expand_df(spei)
+# spei2 <- subset(spei, Date >= start_date & Date <= end_date)
 # plot(spei$Date, spei$Drought, type = 'l', ylab = 'Inverse SPEI', xlab = 'Date')
