@@ -25,6 +25,14 @@ out <- as.data.frame(
   )
 )
 
+par(mfrow = c(2,2), mar = c(2.5,4,1,1))
+plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates')
+plot(yfv_epidemic, out$I_h, type = 'l', ylab = 'Inf people')
+plot(yfv_epidemic, out$S_p, type = 'l', ylab = 'S primates')
+plot(yfv_epidemic, out$R_p, type = 'l', ylab = 'R primates')
+
+
+
 # plot(yfv_epidemic, out$R_p, type = 'l', ylab = 'R primates')
 par(mfrow = c(3,3), mar = c(2.5,4,1,1))
 plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates')

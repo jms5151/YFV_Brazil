@@ -4,7 +4,9 @@ source('biting_rate_drought_functions.R')
 
 yfv_model <- function(t, state, parameters) {
   with(as.list(c(state,parameters)), {
+    # browser() # can use in if t > x
     # Howler monkeys
+    # a1(t)
     dS_p <- -(a1[t] * 0.5 * p * b * (I_hm / (S_p + I_p + R_p)) * S_p) + (mu_p * (I_p + R_p)) + (m[t] * R_p)
     dI_p <- (a1[t] * 0.5 * p * b * (I_hm / (S_p + I_p + R_p)) * S_p) - (gamma_p * I_p) - (mu_p * I_p) - (I_p * mu_v1)
     dR_p <- ((gamma_p * I_p) * (1-mu_v1)) - (mu_p * R_p) - (m[t] * R_p)

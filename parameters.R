@@ -47,21 +47,30 @@ br_hm <- (high_br_hm + low_br_hm)/2 + (high_br_hm - low_br_hm)/2 * cos(days * fr
 # plot(yfv_epidemic, br_hm, type = 'l', col = 'blue', xlab = 'Day', ylab = 'Value')
 
 # # drought index
-# source('format_drought_data.R')
-# spei <- subset(spei, Date >= start_date & Date <= end_date) 
-# 
-# # biting rates
-# source('biting_rate_drought_functions.R')
-# p <- read.csv('parameter_values.csv')
+source('format_drought_data.R')
+spei <- subset(spei, Date >= start_date & Date <= end_date)
 
+# # biting rates
+source('biting_rate_drought_functions.R')
+p <- read.csv('parameter_values.csv')
+
+### when SPEI > 1, monkeys move from "R" compartment towards city at rate x
+### look at range of m = from 2-15%/month? 
+### non-drought: compare % moving from non-outbreak years
+spei$Drought <- spei$SPEI.3
+movement <- ifelse(spei$Drought > 1, 2/(12*30), 0) 
+# movement <- ifelse(spei$lag90 > 1, 8/(12*30), 0) 
+
+# test <- approxfun(times, yfv_params$a2)
 # list parameters
+
 yfv_params <- list(
-  # a1 = sapply(spei$Drought, function(x) a1(x))
-  a1 = rep(p$value[p$variable == 'a1'], length(times))
-  # , a2 = sapply(spei$Drought, function(x) a2(x))
-  , a2 = rep(p$value[p$variable == 'a2'], length(times))
-  # , a3 = sapply(spei$Drought, function(x) a3(x))
-  , a3 = rep(p$value[p$variable == 'a3'], length(times))
+  a1 = sapply(spei$Drought, function(x) a1(x))
+  # a1 = rep(p$value[p$variable == 'a1'], length(times))
+  , a2 = sapply(spei$Drought, function(x) a2(x))
+  # , a2 = rep(p$value[p$variable == 'a2'], length(times))
+  , a3 = sapply(spei$Drought, function(x) a3(x))
+  # , a3 = rep(p$value[p$variable == 'a3'], length(times))
   , b = p$value[p$variable == 'b']
   , pMI1 = p$value[p$variable == 'pMI1']
   , pMI2 = p$value[p$variable == 'pMI2']
@@ -87,5 +96,5 @@ yfv_params <- list(
   , br1 = br_hm
   , br2 = br_aa
   # , w = 1/(10*365) # waning immunity
-  , m = br_hm/365 #spei2$Drought/365 # immigration
+  , m = movement[1:731]#br_hm/365 #spei2$Drought/365 # immigration
   )
