@@ -25,6 +25,7 @@ out <- as.data.frame(
   )
 )
 
+# may want to sum to months and replot to match with observations
 par(mfrow = c(2,2), mar = c(2.5,4,1,1))
 plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates')
 plot(yfv_epidemic, out$I_h, type = 'l', ylab = 'Inf people')

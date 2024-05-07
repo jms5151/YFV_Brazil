@@ -8,7 +8,7 @@ mosquitoes = 25000
 marmosets = monkeys * 2
 none = 0
 vaccinated = 0.5
-natimm = 0.3
+natimm = 0.8
 
 state_start <- c(
   S_p = monkeys*(1-natimm)
