@@ -1,17 +1,12 @@
+# load validation data
+realdata <- read.csv('../validation_data.csv')
+realdata$Date <- as.Date(realdata$Month, '%m/%d/%Y')
+
 # source model and data
 source('model.R')
 source('state_variables.R')
 source('parameters.R')
 source('biting_rate_drought_functions.R')
-
-# play around with biting rate? As in, Hm are biting a lot of things other
-# then monkeys and marmosets, think I already tried this before
-
-# Or could keep biting rate static and change mosquito birth rate as a function of season/rainfall
-# but separate birth and death rate, so more births, same number of deaths
-# should be done in Hm and aa, same way
-
-# could have different populations of NHPs to compare with/without drought
 
 # run model
 out <- as.data.frame(
@@ -25,6 +20,14 @@ out <- as.data.frame(
   )
 )
 
+pdf('../Figures/model_v_data.pdf', height = 4, width = 10)
+par(mfrow = c(1,2), mar = c(2.5,4,1,1))
+plot(yfv_epidemic, out$I_h, type = 'l', ylab = 'Inf people')
+lines(realdata$Date, realdata$MG_human, col = 'orange', type = 'b', pch = 16)
+plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates', ylim =  c(0, 75))
+lines(realdata$Date, realdata$MG_primate, col = 'orange', type = 'b', pch = 16)
+dev.off()
+
 # may want to sum to months and replot to match with observations
 par(mfrow = c(2,2), mar = c(2.5,4,1,1))
 plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates')
@@ -33,6 +36,17 @@ plot(yfv_epidemic, out$S_p, type = 'l', ylab = 'S primates')
 plot(yfv_epidemic, out$R_p, type = 'l', ylab = 'R primates')
 
 
+
+out$Date <- yfv_epidemic
+out$YM <- format(out$Date, '%Y-%m')
+library(tidyverse)
+out2 <- out %>%
+  group_by(YM) %>%
+  summarise(InfPrimates = sum(I_p),
+            InfHumans = sum(I_h))
+
+plot.ts(out2$InfPrimates)
+plot.ts(out2$InfHumans)
 
 # plot(yfv_epidemic, out$R_p, type = 'l', ylab = 'R primates')
 par(mfrow = c(3,3), mar = c(2.5,4,1,1))
