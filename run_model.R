@@ -1,6 +1,8 @@
 # load validation data
 realdata <- read.csv('../validation_data.csv')
 realdata$Date <- as.Date(realdata$Month, '%m/%d/%Y')
+# x <- subset(realdata, Date >= start_date & Date <= end_date)
+# lines(x$Date, x$MG_primate, col = 'red', type = 'b', pch = 16)
 
 # source model and data
 source('model.R')
@@ -20,22 +22,70 @@ out <- as.data.frame(
   )
 )
 
-pdf('../Figures/model_v_data.pdf', height = 4, width = 10)
+
+# # simulate across a range of movements (<1-15%/month), inForst percent (10-70%), 
+# # and mortality rates (50 & 80%)
+# 
+# pdf('../Figures/model_v_data.pdf', height = 4, width = 10)
+# par(mfrow = c(1,2), mar = c(2.5,4,1,1))
+# plot(yfv_epidemic, out$I_h, type = 'l', ylab = 'Inf people')
+# lines(realdata$Date, realdata$MG_human, col = 'orange', type = 'b', pch = 16)
+# plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates')
+# lines(realdata$Date, realdata$MG_primate, col = 'orange', type = 'b', pch = 16)
+# dev.off()
+
+
+out_fixed_bite <- as.data.frame(
+  ode(
+    state_start
+    , times
+    , yfv_model
+    , yfv_params_bite_fixed
+  )
+)
+
+out_fixed_move <- as.data.frame(
+  ode(
+    state_start
+    , times
+    , yfv_model
+    , yfv_params_move_fixed
+  )
+)
+
+out_fixed <- as.data.frame(
+  ode(
+    state_start
+    , times
+    , yfv_model
+    , yfv_params_fixed
+  )
+)
+
+rho = 0.1
+
+# overlaid plot
+pdf('../Figures/model_comparison_overlaid_v2.pdf', width = 10, height = 5)
 par(mfrow = c(1,2), mar = c(2.5,4,1,1))
-plot(yfv_epidemic, out$I_h, type = 'l', ylab = 'Inf people')
-lines(realdata$Date, realdata$MG_human, col = 'orange', type = 'b', pch = 16)
-plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates', ylim =  c(0, 75))
-lines(realdata$Date, realdata$MG_primate, col = 'orange', type = 'b', pch = 16)
+plot(yfv_epidemic, out$I_h*rho, type = 'l', ylab = 'Infected people', col = 'darkred', lwd = 2, ylim = c(0, 600))
+lines(yfv_epidemic, out_fixed_move$I_h*rho, col = '#003285', lwd = 2, lty = 2)
+lines(yfv_epidemic, out_fixed_bite$I_h*rho, col = '#2A629A', lwd = 2)
+lines(yfv_epidemic, out_fixed$I_h*rho, col = '#FF7F3E', lwd = 2, lty = 2)
+lines(realdata$Date, realdata$MG_human, type = 'b', pch = 16)
+legend("topright"
+       , legend = c("Full Model", "No Movement", "Fixed Biting Rate", "Fixed", 'Data')
+       , bty = 'n'
+       , col = c("darkred", "#003285", "#2A629A", "#FF7F3E", 'black')
+       , lwd = 2
+       , lty = c(1, 2, 1, 2, 2)
+       , pch=c(26,26,26,26,21))
+
+plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Infected primates', col = 'darkred', lwd = 2, ylim = c(0, 600))
+lines(yfv_epidemic, out_fixed_move$I_p, col = '#003285', lwd = 2)
+lines(yfv_epidemic, out_fixed_bite$I_p, col = '#2A629A', lwd = 2)
+lines(yfv_epidemic, out_fixed$I_p, col = '#FF7F3E', lwd = 2)
+lines(realdata$Date, realdata$MG_primate, type = 'b', pch = 16)
 dev.off()
-
-# may want to sum to months and replot to match with observations
-par(mfrow = c(2,2), mar = c(2.5,4,1,1))
-plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Inf primates')
-plot(yfv_epidemic, out$I_h, type = 'l', ylab = 'Inf people')
-plot(yfv_epidemic, out$S_p, type = 'l', ylab = 'S primates')
-plot(yfv_epidemic, out$R_p, type = 'l', ylab = 'R primates')
-
-
 
 out$Date <- yfv_epidemic
 out$YM <- format(out$Date, '%Y-%m')

@@ -1,4 +1,5 @@
 p <- read.csv('parameter_values.csv')
+source('format_drought_data.R')
 
 alpha_adj <- function(x, min_biting){
   spei <- c(1, 2) # based on SPEI classification of extremely dry (anything greater than 2)

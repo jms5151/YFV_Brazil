@@ -1,5 +1,5 @@
 # set up time sequence for simulation
-start_date <- as.Date('2016-12-01') # may want to shift this to November
+start_date <- as.Date('2016-11-01') # may want to shift this to November
 end_date <- as.Date('2018-12-15')
 yfv_epidemic <- seq.Date(start_date, end_date, by = 'days')
 times <- seq(from = 1, to = length(yfv_epidemic), by = 1)
@@ -27,7 +27,7 @@ K_dry <- mosquitoes
 K_wet <- K_dry * 6 # (Dec - April)
 k <- (K_wet + K_dry)/2 + (K_wet - K_dry)/2 * cos(days * frequency)
 # Plot the wave
-# plot(yfv_epidemic, k, type = 'l', col = 'blue', xlab = 'Day', ylab = 'Value')
+plot(yfv_epidemic, k, type = 'l', col = 'blue', xlab = 'Day', ylab = 'Value')
 
 # birth rates as function of season
 low_br_aa <- 1/35
@@ -41,22 +41,33 @@ br_hm <- (high_br_hm + low_br_hm)/2 + (high_br_hm - low_br_hm)/2 * cos(days * fr
 # plot(yfv_epidemic, br_hm, type = 'l', col = 'blue', xlab = 'Day', ylab = 'Value')
 
 # biting rates
-source('biting_rate_drought_functions.R')
-a1vals <-  sapply(spei$Drought, function(x) a1(x))
-a2vals <- sapply(spei$Drought, function(x) a2(x))
-a3vals <- sapply(spei$Drought, function(x) a3(x))
+# source('biting_rate_drought_functions.R')
+# source('format_drought_data.R')
+# spei <- subset(spei, Date >= start_date & Date <= end_date)
+# spei$Drought <- spei$SPEI.1
+# a1vals <-  sapply(spei$Drought, function(x) a1(x))
+# a2vals <- sapply(spei$Drought, function(x) a2(x))
+# a3vals <- sapply(spei$Drought, function(x) a3(x))
+
+# 0.35 for Hm on people, 0.7 for Hm on monkeys and Aa on people, but could increase to 0.86
+low_bite_rate <- 0.5
+high_bite_rate <- 1
+a1vals <- (high_bite_rate + low_bite_rate)/2 + (high_bite_rate - low_bite_rate)/2 * sin(days * frequency - 60)
+# plot.ts(a1vals)
+# divide wave in half for Hm on people
 
 # Monkeys move from "R" compartment towards city at rate x
-# look at range of m = from 2-15%/month? 
-moveRate <- 1/(12*30)
-movement <- (moveRate + 0)/2 + (moveRate - 0)/2 * sin(days * frequency - 55)
-# plot(yfv_epidemic, movement, type = 'l')
+# look at range of m = from <1-15%/month? 
+moveRate <- 0.5/(12*30)
+movement <- (moveRate + 0)/2 + (moveRate - 0)/2 * sin(days * frequency - 60)
+plot(yfv_epidemic, movement, type = 'l')
 # lines(yfv_epidemic, movement, col = 'blue')
+# movement <- ifelse(x$SPEI.1 > 1, movement, 0)
 
 # create time varying functions
 a1approx <- approxfun(times, a1vals)
-a2approx <- approxfun(times, a2vals)
-a3approx <- approxfun(times, a3vals)
+a2approx <- approxfun(times, a1vals/2)
+a3approx <- approxfun(times, a1vals)
 Vapprox <- approxfun(times, v_ts)
 Kapprox <- approxfun(times, k)
 br1approx <- approxfun(times, br_hm)
@@ -80,7 +91,7 @@ yfv_params <- list(
   , mu_p = p$value[p$variable == 'mu_p']
   , mu_h = p$value[p$variable == 'mu_h']
   , mu_c = p$value[p$variable == 'mu_c']
-  , mu_v1 = p$value[p$variable == 'mu_v1']
+  , mu_v1 = 0.5#p$value[p$variable == 'mu_v1'] # use 50 and 80% (or 85%)
   , mu_v2 = p$value[p$variable == 'mu_v2']
   , mu_v3 = p$value[p$variable == 'mu_v3']
   , gamma_p = p$value[p$variable == 'gamma_p']
@@ -94,3 +105,24 @@ yfv_params <- list(
   , br2 = br2approx # Aa
   , m = mapprox
 )
+
+# remove biting rate as function of drought
+a1approx_fixed <- approxfun(times, rep(p$value[p$variable=='a1'], length(times)))
+a2approx_fixed <- approxfun(times, rep(p$value[p$variable=='a2'], length(times)))
+a3approx_fixed <- approxfun(times, rep(p$value[p$variable=='a3'], length(times)))
+
+yfv_params_bite_fixed <- yfv_params
+yfv_params_bite_fixed$a1 <- a1approx_fixed
+yfv_params_bite_fixed$a2 <- a2approx_fixed
+yfv_params_bite_fixed$a3 <- a3approx_fixed
+
+# remove movement as function of season
+m_fixed <- approxfun(times, rep(0, length(times)))
+
+yfv_params_move_fixed <- yfv_params
+yfv_params_move_fixed$m <- m_fixed
+
+# remove biting rate and movement as function of season
+yfv_params_fixed <- yfv_params_bite_fixed
+yfv_params_fixed$m <- m_fixed
+
