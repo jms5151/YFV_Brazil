@@ -1,27 +1,51 @@
-# load validation data
-realdata <- read.csv('../validation_data.csv')
-realdata$Date <- as.Date(realdata$Month, '%m/%d/%Y')
-# x <- subset(realdata, Date >= start_date & Date <= end_date)
-# lines(x$Date, x$MG_primate, col = 'red', type = 'b', pch = 16)
+# load the required packages
+library(foreach)
+library(doParallel)
+library(deSolve)
 
-# source model and data
+# model
 source('model.R')
-source('state_variables.R')
+
+# lists of parameters
 source('parameters.R')
-source('biting_rate_drought_functions.R')
 
-# run model
-out <- as.data.frame(
-  ode(
-    state_start
-    , times
-    , yfv_model
-    , yfv_params
-    # , rtol = 1e-12
-    # , hmax = 1 / 120
-  )
-)
+# lists of initial conditions/state variables
+source('state_variables.R')
 
+# Set up parallel backend to use multiple processors
+numCores <- detectCores() - 1
+cl <- makeCluster(numCores)
+registerDoParallel(cl)
+
+# Run the ODE model in parallel for each combination of state_start_list and yfv_params_list
+resultsNew <- foreach(yfv_params_idx = 1:length(yfv_params_list), .packages = 'deSolve') %:%
+  foreach(state_start_idx = 1:length(state_start_list), .packages = 'deSolve') %dopar% {
+    state_start <- state_start_list[[state_start_idx]]
+    yfv_params <- yfv_params_list[[yfv_params_idx]]
+    result <- as.data.frame(
+      ode(
+        y = unlist(state_start),  # Ensure state_start is a numeric vector
+        times = times,
+        func = yfv_model,
+        parms = yfv_params
+      )
+    )
+    list(
+      yfv_params_idx = yfv_params_idx,
+      state_start_idx = state_start_idx,
+      result = result
+    )
+  }
+
+# Stop the parallel backend
+stopCluster(cl)
+
+# View the results as a list of lists with identifiers
+# print(results)
+# plot.ts(results[[1]][[2]]$result$I_h)
+# lines(results[[2]][[2]]$result$I_h)
+
+# Assess results
 
 # # simulate across a range of movements (<1-15%/month), inForst percent (10-70%), 
 # # and mortality rates (50 & 80%)
@@ -65,27 +89,31 @@ out_fixed <- as.data.frame(
 rho = 0.1
 
 # overlaid plot
-pdf('../Figures/model_comparison_overlaid_v2.pdf', width = 10, height = 5)
+## NOTES: seasonally driven movement creates small second peak but at wrong time
+# seasonally driven biting rate doesn't do anything, BUT
+# seasonally driven movement and biting rate has synergistic response producing second and larger peak than
+# either in isolation
+pdf('../Figures/model_comparison_overlaid_v2.pdf', width = 12, height = 5)
 par(mfrow = c(1,2), mar = c(2.5,4,1,1))
 plot(yfv_epidemic, out$I_h*rho, type = 'l', ylab = 'Infected people', col = 'darkred', lwd = 2, ylim = c(0, 600))
 lines(yfv_epidemic, out_fixed_move$I_h*rho, col = '#003285', lwd = 2, lty = 2)
 lines(yfv_epidemic, out_fixed_bite$I_h*rho, col = '#2A629A', lwd = 2)
 lines(yfv_epidemic, out_fixed$I_h*rho, col = '#FF7F3E', lwd = 2, lty = 2)
 lines(realdata$Date, realdata$MG_human, type = 'b', pch = 16)
-legend("topright"
-       , legend = c("Full Model", "No Movement", "Fixed Biting Rate", "Fixed", 'Data')
+legend('topleft'
+       , legend = c("Seasonal primate movement & seasonal biting rate", "No primate movement, seasonally-driven biting rate", "Seasonally-driven primate movement, fixed biting rate", "No primate movement & fixed biting rate", 'Data')
        , bty = 'n'
        , col = c("darkred", "#003285", "#2A629A", "#FF7F3E", 'black')
        , lwd = 2
        , lty = c(1, 2, 1, 2, 2)
        , pch=c(26,26,26,26,21))
-
 plot(yfv_epidemic, out$I_p, type = 'l', ylab = 'Infected primates', col = 'darkred', lwd = 2, ylim = c(0, 600))
-lines(yfv_epidemic, out_fixed_move$I_p, col = '#003285', lwd = 2)
+lines(yfv_epidemic, out_fixed_move$I_p, col = '#003285', lwd = 2, lty = 2)
 lines(yfv_epidemic, out_fixed_bite$I_p, col = '#2A629A', lwd = 2)
-lines(yfv_epidemic, out_fixed$I_p, col = '#FF7F3E', lwd = 2)
+lines(yfv_epidemic, out_fixed$I_p, col = '#FF7F3E', lwd = 2, lty = 2)
 lines(realdata$Date, realdata$MG_primate, type = 'b', pch = 16)
 dev.off()
+
 
 out$Date <- yfv_epidemic
 out$YM <- format(out$Date, '%Y-%m')
