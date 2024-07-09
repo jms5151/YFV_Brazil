@@ -1,27 +1,164 @@
-# Initialize a list to store results for each yfv_params_idx
-num_params <- length(yfv_params_list)
-grouped_results <- vector("list", num_params)
-
-i=9
-test <- resultsNew[[1]]
-
-# Extract the third element from each list within grouped_results
-third_elements <- lapply(test, function(x) x[[3]])
-
-# Combine all third elements into a single data frame using do.call and rbind
-combined_df <- do.call(rbind, third_elements)
-
+# load libraries
 library(tidyverse)
+library(ggpubr)
 
-test2 <- combined_df %>%
-  na.omit() %>%
-  group_by(time) %>%
-  summarise(
-    I_h_median = quantile(I_h, 0.5)
-    , I_h_25 = quantile(I_h, 0.25)
-    , I_h_75 = quantile(I_h, 0.75)
-  )
+# format validation data
+val_data <- read.csv('../validation_data.csv')
+val_data$Date <- as.Date(val_data$Month, '%m/%d/%Y')
+val_data_long <- val_data %>%
+  filter(Date >= start_date & Date <= end_date) %>%
+  pivot_longer(
+    cols = c(MG_human, MG_primate),
+    names_to = "variable",
+    values_to = "value"
+  ) %>%
+  as.data.frame() 
 
-plot.ts(test2$I_h_75, lty = 2, col = 'red')
-lines(test2$I_h_median)
-lines(test2$I_h_25, lty = 2, col = 'red')
+val_data_long$variable <- ifelse(val_data_long$variable == 'MG_human', 'I_h_median', 'I_p_median')  
+val_data_long$model <- 'Observed'
+val_data_long$I_25 <- NA
+val_data_long$I_75 <- NA
+
+# format simulated data
+for(i in 1:length(yfv_params_list)){
+  df <- resultsNew[[i]]
+  
+  # Extract the third element from each list within grouped_results
+  third_elements <- lapply(df, function(x) x[[3]])
+  
+  # Combine all third elements into a single data frame using do.call and rbind
+  combined_df <- do.call(rbind, third_elements)
+  
+  # summarise
+  df2 <- combined_df %>%
+    na.omit() %>%
+    group_by(time) %>%
+    summarise(
+      I_h_median = quantile(I_h, 0.5)
+      , I_h_25 = quantile(I_h, 0.25)
+      , I_h_75 = quantile(I_h, 0.75)
+      , I_p_median = quantile(I_p, 0.5)
+      , I_p_25 = quantile(I_p, 0.25)
+      , I_p_75 = quantile(I_p, 0.75)
+    ) %>%
+    mutate('model' = names(yfv_params_list)[i])
+
+  df2$Date <- yfv_epidemic[1:nrow(df2)]
+  
+  # transform to good format for plotting
+  df_long_median <- df2 %>%
+    pivot_longer(
+      cols = c(I_h_median, I_p_median),
+      names_to = "variable",
+      values_to = "value"
+    )
+  
+  
+  # Create a key to join the percentiles back to the long format
+  df_long_median <- df_long_median %>%
+    mutate(
+      I_25 = case_when(
+        variable == "I_h_median" ~ I_h_25,
+        variable == "I_p_median" ~ I_p_25
+      ),
+      I_75 = case_when(
+        variable == "I_h_median" ~ I_h_75,
+        variable == "I_p_median" ~ I_p_75
+      )
+    ) %>%
+    select(Date, model, variable, value, I_25, I_75) %>%
+    as.data.frame()
+  
+  # adjust by reporting rate
+  rho = 0.1
+  df_long_median[,c('value', 'I_25', 'I_75')] <- lapply(df_long_median[,c('value', 'I_25', 'I_75')], function(x) x * rho)
+  
+  # add observed data
+  df_long_median <- rbind(df_long_median, val_data_long[,colnames(df_long_median)])
+  
+  # rename variable labels
+  df_long_median$variable <- ifelse(df_long_median$variable == 'I_h_median', 'Infected people', 'Infected monkeys')
+  
+  # rename dataset
+  assign(names(yfv_params_list)[i], df_long_median)
+  
+}
+
+# Plotting function
+create_comparison_plot <- function(df, custom_colors, custom_labels){
+  p <- ggplot(df, aes(x = Date, y = value, color = model, fill = model)) +
+    geom_ribbon(aes(ymin = I_25, ymax = I_75), alpha = 0.3, linetype = 0) +
+    geom_line(lwd = 1.1) +
+    facet_wrap(~variable, scales = 'free') +
+    theme_bw() +
+    xlab('Date') +
+    ylab('Infected') +
+    scale_color_manual(values = custom_colors, labels = custom_labels, name = 'Model') +
+    scale_fill_manual(values = custom_colors, labels = custom_labels, name = 'Model') +
+    theme(legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10),
+          axis.title.x = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          strip.text = element_text(size = 12)) +
+    theme(legend.position = 'bottom') +
+    guides(color = guide_legend(ncol = 1), fill = guide_legend(ncol = 1))
+  return(p)
+}
+
+
+# Model comparison figure --------------
+# combine datasets
+mod_compare <- do.call(rbind, list(base_model, fixed_bite_rate, fixed_movement, fixed))
+mod_compare <- mod_compare[!duplicated(mod_compare), ]
+
+# Define custom colors
+mod_comp_colors <- c('base_model' = '#149889'
+                   , 'fixed_bite_rate' = '#82118e'
+                   , 'fixed_movement' = '#2e3d54'
+                   , 'fixed' = '#c5a030'
+                   , 'Observed' = 'black')
+
+# Custom labels for the legend
+mod_comp_labels <- c('base_model' = 'Seasonal primate movement & seasonal biting rate'
+                   , 'fixed_bite_rate' = 'No primate movement, seasonally-driven biting rate'
+                   , 'fixed_movement' = 'Seasonally-driven primate movement, fixed biting rate'
+                   , 'fixed' = 'No primate movement & fixed biting rate'
+                   , 'Observed' = 'Observed')
+
+
+model_comparison_plot <- create_comparison_plot(df = mod_compare, custom_colors = mod_comp_colors, custom_labels = mod_comp_labels)
+ggsave(filename = '../Figures/Model_comparison_plot.pdf', plot = model_comparison_plot, width = 10, height = 5.5)
+
+# Compare YFV primate mortality rates
+mu_compare <- do.call(rbind, list(base_model, low_mu_v1, high_mu_v1))
+mu_compare <- mu_compare[!duplicated(mu_compare), ]
+mu_compare$model <- factor(mu_compare$model, levels = c('high_mu_v1', 'base_model', 'low_mu_v1', 'Observed')) 
+  
+mu_colors <- c('low_mu_v1' = '#1f324a', 'base_model' = '#1561b0', 'high_mu_v1' = '#5fa6dc', 'Observed' = 'black')
+mu_labels <- c('low_mu_v1' = '20%', 'base_model' = '50%', 'high_mu_v1' = '80%', 'Observed' = 'Observed')
+
+mu_comparison_plot <- create_comparison_plot(df = mu_compare, custom_colors = mu_colors, custom_labels = mu_labels) + theme(legend.position = c(0.9, 0.6)) + ggtitle('YFV monkey mortality rate')
+
+# Compare Hm probability of biting NHP vs humans
+p_compare <- do.call(rbind, list(base_model, low_p, mod_p))
+p_compare <- p_compare[!duplicated(p_compare), ]
+p_compare$model <- factor(p_compare$model, levels = c('base_model', 'mod_p', 'low_p', 'Observed')) 
+
+p_colors <- c('low_p' = '#1f324a', 'mod_p' = '#1561b0', 'base_model' = '#5fa6dc', 'Observed' = 'black')
+p_labels <- c('low_p' = '30%', 'mod_p' = '50%', 'base_model' = '80%', 'Observed' = 'Observed')
+
+p_comparison_plot <- create_comparison_plot(df = p_compare, custom_colors = p_colors, custom_labels = p_labels) + theme(legend.position = c(0.9, 0.6)) + ggtitle('Proportion Hm mosquitoes biting NHP vs humans')
+
+# Compare seasonal monkey movement rates
+move_compare <- do.call(rbind, list(base_model, mod_move, high_move))
+move_compare <- move_compare[!duplicated(move_compare), ]
+move_compare$model <- factor(move_compare$model, levels = c('high_move', 'mod_move', 'base_model', 'Observed')) 
+
+move_colors <- c('base_model' = '#1f324a', 'mod_move' = '#1561b0', 'high_move' = '#5fa6dc', 'Observed' = 'black')
+move_labels <- c('base_model' = '0.5%', 'mod_move' = '2%', 'high_move' = '10%', 'Observed' = 'Observed')
+
+move_comparison_plot <- create_comparison_plot(df = move_compare, custom_colors = move_colors, custom_labels = move_labels) + theme(legend.position = c(0.9, 0.6)) + ggtitle('Movement rate of monkeys from forest to city (%/month)')
+
+# combine plots
+sensitivity_plot <- ggarrange(mu_comparison_plot, p_comparison_plot, move_comparison_plot, ncol = 1)
+ggsave(filename = '../Figures/Sensitivity_plot.pdf', sensitivity_plot, width = 12, height = 9)
