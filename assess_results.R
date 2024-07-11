@@ -65,7 +65,9 @@ calc_correlation <- function(df, rho, var1, var2){
   x2[, var1] <- x2[, var1] * rho
   x3 <- x2[,c(var1, var2)]
   x3 <- subset(x3, !is.na(x3[,var2]))
-  dist_out <- round(cor.test(x3[,var1], x3[,var2])$estimate, 2)
+  # Calculate the cross-correlation function
+  ccf_result <- ccf(x3[,var1], x3[,var2], lag.max = 0, plot = FALSE)
+  dist_out <- round(ccf_result$acf[which(ccf_result$lag == 0)], 2)
   return(dist_out)
 }
 
