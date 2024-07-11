@@ -1,9 +1,6 @@
 # load libraries
 library(tidyverse)
 library(ggpubr)
-library(TSdist)
-
-## update rho for monkeys to be YFV mortality rate
 
 # load model results
 resultsNew <- readRDS('../model_results.RData')
@@ -61,26 +58,28 @@ get_medians <- function(dflist){
   return(df2)
 }
 
-# calculate distances
-calc_ts_distances <- function(df, rho, var1, var2){
+# calculate correlations between simulations and observations
+calc_correlation <- function(df, rho, var1, var2){
   # add observed data
   x2 <- df %>% left_join(val_data) %>% as.data.frame()
   x2[, var1] <- x2[, var1] * rho
   x3 <- x2[,c(var1, var2)]
   x3 <- subset(x3, !is.na(x3[,var2]))
-  dist_out <- round(DTWDistance(x3[,var1], x3[,var2]))
+  dist_out <- round(cor.test(x3[,var1], x3[,var2])$estimate, 2)
   return(dist_out)
 }
 
-distDF <- data.frame(matrix(nrow = 0, ncol = 3))
-colnames(distDF) <- c('model', 'tsdist_humans', 'tsdist_primates')
+corDF <- data.frame(matrix(nrow = 0, ncol = 3))
+colnames(corDF) <- c('model', 'correlation_humans', 'correlation_primates')
 
 for(i in 1:length(yfv_params_list)){
   x <- get_medians(dflist = resultsNew[[i]])
-  distHuman <- calc_ts_distances(df = x, rho = rho_humans, var1 = 'I_h_median', var2 = 'MG_human')
-  distPrimates <- calc_ts_distances(df = x, rho = rho_monkeys, var1 = 'I_p_median', var2 = 'MG_primate')
-  distDF[i,] <- c(unique(x$model), distHuman, distPrimates)  
+  corHuman <- calc_correlation(df = x, rho = rho_humans, var1 = 'I_h_median', var2 = 'MG_human')
+  corPrimates <- calc_correlation(df = x, rho = rho_monkeys, var1 = 'I_p_median', var2 = 'MG_primate')
+  corDF[i,] <- c(unique(x$model), corHuman, corPrimates)
 }
+
+write.csv(corDF, 'model_validation.csv', row.names = F)
 
 # format simulated data for plotting
 for(i in 1:length(yfv_params_list)){
