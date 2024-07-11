@@ -39,3 +39,6 @@ resultsNew <- foreach(yfv_params_idx = 1:length(yfv_params_list), .packages = 'd
 
 # Stop the parallel backend
 stopCluster(cl)
+
+# save
+saveRDS(object = resultsNew, file = '../model_results.RData')
