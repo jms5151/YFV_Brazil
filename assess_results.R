@@ -74,7 +74,7 @@ calc_correlation <- function(df, rho, var1, var2){
 corDF <- data.frame(matrix(nrow = 0, ncol = 3))
 colnames(corDF) <- c('model', 'correlation_humans', 'correlation_primates')
 
-for(i in 1:length(yfv_params_list)){
+for(i in 1:10){
   x <- get_medians(dflist = resultsNew[[i]])
   corHuman <- calc_correlation(df = x, rho = rho_humans, var1 = 'I_h_median', var2 = 'MG_human')
   corPrimates <- calc_correlation(df = x, rho = rho_monkeys, var1 = 'I_p_median', var2 = 'MG_primate')
@@ -124,21 +124,26 @@ for(i in 1:length(yfv_params_list)){
 
 
 # Plotting function
-create_comparison_plot <- function(df, custom_colors, custom_labels, titleName = ''){
-
+create_comparison_plot <- function(df, custom_colors, custom_labels, titleName = '') {
   df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_25', 'I_75')] <- lapply(df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_25', 'I_75')], function(x) x * rho_humans)
   df[df$model != 'Observed' & df$variable == 'Infected monkeys', c('value', 'I_25', 'I_75')] <- lapply(df[df$model != 'Observed' & df$variable == 'Infected monkeys', c('value', 'I_25', 'I_75')], function(x) x * rho_monkeys)
   
+  # Separate the observed data
+  df_observed <- df[df$model == 'Observed', ]
+  df_model <- df[df$model != 'Observed', ]
+  
   # plot
-  p <- ggplot(df, aes(x = Date, y = value, color = model, fill = model)) +
+  p <- ggplot(df_model, aes(x = Date, y = value, color = model, fill = model)) +
     geom_ribbon(aes(ymin = I_25, ymax = I_75), alpha = 0.3, linetype = 0) +
     geom_line(lwd = 1.1) +
+    geom_line(data = df_observed, aes(x = Date, y = value), lwd = 1) +
+    geom_point(data = df_observed, aes(x = Date, y = value), size = 3) +
     facet_wrap(~variable, scales = 'free') +
     theme_bw() +
     xlab('Date') +
     ylab('Infected') +
-    scale_color_manual(values = custom_colors, labels = custom_labels, name = 'Model') +
-    scale_fill_manual(values = custom_colors, labels = custom_labels, name = 'Model') +
+    scale_color_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
+    scale_fill_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
     theme(legend.title = element_text(size = 12),
           legend.text = element_text(size = 10),
           axis.title.x = element_text(size = 14),
@@ -147,9 +152,9 @@ create_comparison_plot <- function(df, custom_colors, custom_labels, titleName =
     theme(legend.position = 'bottom') +
     guides(color = guide_legend(ncol = 1), fill = guide_legend(ncol = 1)) +
     ggtitle(titleName)
+  
   return(p)
 }
-
 
 # Model comparison figures --------------
 # combine datasets
@@ -207,3 +212,22 @@ move_comparison_plot <- create_comparison_plot(df = move_compare, custom_colors 
 # combine plots
 sensitivity_plot <- ggarrange(mu_comparison_plot, p_comparison_plot, move_comparison_plot, ncol = 1)
 ggsave(filename = '../Figures/Sensitivity_plot.pdf', sensitivity_plot, width = 12, height = 9)
+
+# Interventions 
+int_compare <- do.call(rbind, list(reduce_mosquitoes, reduce_NHP_movement, increase_vax))
+int_compare <- int_compare[!duplicated(int_compare), ]
+
+# Define custom colors
+int_comp_colors <- c('reduce_mosquitoes' = '#ff595e'
+                     , 'reduce_NHP_movement' = '#ffca3a'
+                     , 'increase_vax' = '#80d819'
+                     , 'Observed' = 'black')
+
+# Custom labels for the legend
+int_comp_labels <- c('reduce_mosquitoes' = 'Vector control'
+                     , 'reduce_NHP_movement' = 'Limit NHP movement into city'
+                     , 'increase_vax' = 'Start vaccination earlier'
+                     , 'Observed' = 'Observed')
+
+intervention_comparison_plot <- create_comparison_plot(df = int_compare, custom_colors = int_comp_colors, custom_labels = int_comp_labels)
+ggsave(filename = '../Figures/Intervention_comparison_plot.pdf', plot = intervention_comparison_plot, width = 10, height = 5.5)

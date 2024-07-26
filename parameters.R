@@ -134,6 +134,7 @@ movement_high <- movement_fn(x1 = 10)
 mapprox_high <- approxfun(times, movement_high)
 yfv_params_high_move$m <- mapprox_high
 
+
 # create list of parameters lists
 yfv_params_list <- list(
   yfv_params
@@ -146,6 +147,9 @@ yfv_params_list <- list(
   , yfv_params_mod_p
   , yfv_params_mod_move
   , yfv_params_high_move
+  , int_params_reduce_mosq
+  , int_params_reduce_nhp_movement
+  , int_params_vax
 )
 
 names(yfv_params_list) <- c(
@@ -159,4 +163,8 @@ names(yfv_params_list) <- c(
   , 'mod_p'
   , 'mod_move'
   , 'high_move'
+  , 'reduce_mosquitoes'
+  , 'reduce_NHP_movement'
+  , 'increase_vax'
 )
+
