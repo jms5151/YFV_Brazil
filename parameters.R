@@ -134,6 +134,29 @@ movement_high <- movement_fn(x1 = 10)
 mapprox_high <- approxfun(times, movement_high)
 yfv_params_high_move$m <- mapprox_high
 
+# interventions
+intervention_date <- as.Date('2017-03-01')
+intervention_date_id <- which(yfv_epidemic == intervention_date)
+
+# reduce mosquitoes
+int_params_reduce_mosq <- yfv_params
+k_new <- c(k[1:(intervention_date_id-1)], k[intervention_date_id:length(k)]/2)
+k_new <- approxfun(times, k_new)
+
+int_params_reduce_mosq$K <- k_new
+
+# reduce NHP movement
+int_params_reduce_nhp_movement <- yfv_params
+move_new <- c(movement[1:(intervention_date_id-1)], movement[intervention_date_id:length(movement)]/2)
+move_new <- approxfun(times, move_new)
+int_params_reduce_nhp_movement$m <- move_new
+
+# increase vaccination: do we want to increase final prop vaccinated or start time of vaccination?
+int_params_vax <- yfv_params
+prevaxtimes_i <- as.numeric(difftime(intervention_date, start_date))
+postvac_times_i <- length(times) - prevaxtimes
+vaccination_rate_i <- (end_pop_vaccinated - start_pop_vaccinated)/postvac_times_i
+vax_new <- c(rep(0, prevaxtimes), rep(vaccination_rate_i, postvac_times_i))
 
 # create list of parameters lists
 yfv_params_list <- list(
@@ -167,4 +190,3 @@ names(yfv_params_list) <- c(
   , 'reduce_NHP_movement'
   , 'increase_vax'
 )
-
