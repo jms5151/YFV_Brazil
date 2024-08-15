@@ -1,6 +1,7 @@
 variable,definition,value
 a1,Biting rate of Haemogogus mosquitoes on primates,0.7
 a2,Biting rate of Haemogogus mosquitos on humans and Aedes mosquitoes on humans,0.35
+sigma,Percentage of Haemogogus bites Howler monkeys (vs marmosets),0.5
 pMI1,Probability of Haemogogus infection given a bite on infectious primate,0.2
 pMI2,Probability of Haemogogus infection given a bite on infectious human,0.25
 pMI3,Probability of Aedes infection given a bite on infectious human,0.25
@@ -22,12 +23,19 @@ gamma_c,Marmoset recovery rate,0.25
 delta_h,Human intrinsic incubation period,0.23
 initial_v,Percent of population vaccinated at start of epidemic,0.5
 final_v,Percent of population vaccinated at end of epidemic,0.9
-p,Probability Hm bitings a NHP (vs a human),0.7
+p,Probability Hm biting a NHP (vs a human),0.7
 mu_aa_low,Aedes birth/mortality rate (low),0.028571429
 mu_aa_high,Aedes birth/mortality rate (high),0.1
 mu_hm_low,Haemogogus birth/mortality rate (low),0.037037037
 mu_hm_high,Haemogogus birth/mortality rate (high),0.142857143
 a1_low,Mosquito biting rate (low),0.5
 a1_high,Mosquito biting rate (high),1
+mu_v1_low,Mortality rate of primates infected with YFV (low),0.2
+mu_v1_high,Mortality rate of primates infected with YFV (high),0.8
+p_low,Probability Hm biting a NHP (vs a human) (low),0.3
+p_mod,Probability Hm biting a NHP (vs a human) (moderate),0.5
+m,Movement of Howler monkeys from the forest to the city ,0.5
+m_mod,Movement of Howler monkeys from the forest to the city (moderate),2
+m_high,Movement of Howler monkeys from the forest to the city (high),10
 K_dry,Carrying capacity (low),300000
 K_wet,Carrying capacity (high),1800000

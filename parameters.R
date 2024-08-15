@@ -42,13 +42,13 @@ a1vals <- seasonal_forcing(times = times, high = p$value[p$variable == 'a1_high'
 
 # Monkeys move from "R" compartment towards city at rate x
 # look at range of m = from <1-15%/month? 
-movement_fn <- function(x1){
+movement_fn <- function(x1, t = times){
   moveRate <- x1/(12*30)
-  movement <- seasonal_forcing2(times = times, x = moveRate) 
+  movement <- seasonal_forcing2(times = t, x = moveRate) 
   return(movement)  
 }
 
-movement <- movement_fn(x1 = 0.5)
+movement <- movement_fn(x1 = p$value[p$variable=='m'])
 
 # plot(yfv_epidemic, movement, type = 'l')
 # lines(yfv_epidemic, movement, col = 'blue')
@@ -67,6 +67,7 @@ mapprox <- approxfun(times, movement)
 yfv_params <- list(
   a1 = a1approx
   , a2 = a2approx
+  , sigma = p$value[p$variable == 'sigma']
   , b = p$value[p$variable == 'b']
   , pMI1 = p$value[p$variable == 'pMI1']
   , pMI2 = p$value[p$variable == 'pMI2']
@@ -116,77 +117,107 @@ yfv_params_fixed <- yfv_params_bite_fixed
 yfv_params_fixed$m <- m_fixed
 
 # adjust YFV-induced monkey mortality rates
-yfv_params_low_mu_v1 <- adjust_params(varName = 'mu_v1', varValue = 0.2)
-yfv_params_high_mu_v1 <- adjust_params(varName = 'mu_v1', varValue = 0.8)
+yfv_params_low_mu_v1 <- adjust_params(varName = 'mu_v1', varValue = p$value[p$variable=='mu_v1_low'])
+yfv_params_high_mu_v1 <- adjust_params(varName = 'mu_v1', varValue = p$value[p$variable=='mu_v1_high'])
 
 # adjust proportion Hm bites on NHP
-yfv_params_low_p <- adjust_params(varName = 'p', varValue = 0.3)
-yfv_params_mod_p <- adjust_params(varName = 'p', varValue = 0.5)
+yfv_params_low_p <- adjust_params(varName = 'p', varValue = p$value[p$variable=='p_low'])
+yfv_params_mod_p <- adjust_params(varName = 'p', varValue = p$value[p$variable=='p_mod'])
 
 # adjust monkey movement rates
 yfv_params_mod_move <- yfv_params
-movement_mod <- movement_fn(x1 = 2)
+movement_mod <- movement_fn(x1 = p$value[p$variable=='m_mod'])
 mapprox_mod <- approxfun(times, movement_mod)
 yfv_params_mod_move$m <- mapprox_mod
 
 yfv_params_high_move <- yfv_params
-movement_high <- movement_fn(x1 = 10)
+movement_high <- movement_fn(x1 = p$value[p$variable=='m_high'])
 mapprox_high <- approxfun(times, movement_high)
 yfv_params_high_move$m <- mapprox_high
 
 # interventions
+# these run longer so need to update time frame for all time varying parameters
+int_times = seq(1:(10*365)) # 10 years
+k_long <- seasonal_forcing(times = int_times, high = p$value[p$variable == 'K_wet'], low = p$value[p$variable == 'K_dry'])
+br_aa_long <- seasonal_forcing(times = int_times, high = p$value[p$variable == 'mu_aa_high'], low = p$value[p$variable == 'mu_aa_low'])
+br_hm_long <- seasonal_forcing(times = int_times, high = p$value[p$variable == 'mu_hm_high'], low = p$value[p$variable == 'mu_hm_low'])
+a1vals_long <- seasonal_forcing(times = int_times, high = p$value[p$variable == 'a1_high'], low = p$value[p$variable == 'a1_low'])
+movement_long <- movement_fn(x1 = p$value[p$variable=='m'], t = int_times)
+v_ts_long <- c(v_ts, rep(0, length(int_times) - length(v_ts)))
+
+# create time varying functions
+a1approx_long <- approxfun(int_times, a1vals_long)
+a2approx_long <- approxfun(int_times, a1vals_long/2)
+Vapprox_long <- approxfun(int_times, v_ts_long)
+Kapprox_long <- approxfun(int_times, k_long)
+br1approx_long <- approxfun(int_times, br_hm_long)
+br2approx_long <- approxfun(int_times, br_aa_long)
+mapprox_long <- approxfun(int_times, movement_long)
+
+yfv_params_long <- yfv_params 
+yfv_params_long$a1 <- a1approx_long
+yfv_params_long$a2 <- a2approx_long  
+yfv_params_long$V <- Vapprox_long
+yfv_params_long$K <- Kapprox_long
+yfv_params_long$br1 <- br1approx_long
+yfv_params_long$br2 <- br2approx_long
+yfv_params_long$m <- mapprox_long
+
 intervention_date <- as.Date('2017-03-01')
 intervention_date_id <- which(yfv_epidemic == intervention_date)
 
 # reduce mosquitoes
-int_params_reduce_mosq <- yfv_params
-k_new <- c(k[1:(intervention_date_id-1)], k[intervention_date_id:length(k)]/2)
-k_new <- approxfun(times, k_new)
+int_params_reduce_mosq <- yfv_params_long
+k_new <- c(k_long[1:(intervention_date_id-1)], k_long[intervention_date_id:length(k_long)]/2)
+k_new <- approxfun(int_times, k_new)
 
 int_params_reduce_mosq$K <- k_new
 
 # reduce NHP movement
-int_params_reduce_nhp_movement <- yfv_params
-move_new <- c(movement[1:(intervention_date_id-1)], movement[intervention_date_id:length(movement)]/2)
-move_new <- approxfun(times, move_new)
+int_params_reduce_nhp_movement <- yfv_params_long
+move_new <- c(movement_long[1:(intervention_date_id-1)], movement_long[intervention_date_id:length(movement_long)]/2)
+move_new <- approxfun(int_times, move_new)
 int_params_reduce_nhp_movement$m <- move_new
 
-# increase vaccination: do we want to increase final prop vaccinated or start time of vaccination?
-int_params_vax <- yfv_params
-prevaxtimes_i <- as.numeric(difftime(intervention_date, start_date))
-postvac_times_i <- length(times) - prevaxtimes
-vaccination_rate_i <- (end_pop_vaccinated - start_pop_vaccinated)/postvac_times_i
-vax_new <- c(rep(0, prevaxtimes), rep(vaccination_rate_i, postvac_times_i))
+# shift vaccination earlier
+int_params_vax <- yfv_params_long
+vax_start_i <- as.Date('2017-01-01') + 30
+vax_length <- sum(v_ts > 0)
+prevaxtimes_i <- as.numeric(difftime(vax_start_i, start_date))
+vax_new <- c(rep(0, prevaxtimes_i), rep(vaccination_rate, vax_length))
+vax_new <- c(vax_new, rep(0, length(v_ts_long) - length(vax_new)))
+vax_new <- approxfun(int_times, vax_new)
+int_params_vax$V <- vax_new
 
 # create list of parameters lists
 yfv_params_list <- list(
-  yfv_params
-  , yfv_params_bite_fixed
-  , yfv_params_move_fixed
-  , yfv_params_fixed
-  , yfv_params_low_mu_v1
-  , yfv_params_high_mu_v1
-  , yfv_params_low_p
-  , yfv_params_mod_p
-  , yfv_params_mod_move
-  , yfv_params_high_move
-  , int_params_reduce_mosq
+  # yfv_params
+  # , yfv_params_bite_fixed
+  # , yfv_params_move_fixed
+  # , yfv_params_fixed
+  # , yfv_params_low_mu_v1
+  # , yfv_params_high_mu_v1
+  # , yfv_params_low_p
+  # , yfv_params_mod_p
+  # , yfv_params_mod_move
+  # , yfv_params_high_move
+  int_params_reduce_mosq
   , int_params_reduce_nhp_movement
   , int_params_vax
 )
 
 names(yfv_params_list) <- c(
-  'base_model'
-  , 'fixed_bite_rate'
-  , 'fixed_movement'
-  , 'fixed'
-  , 'low_mu_v1'
-  , 'high_mu_v1'
-  , 'low_p'
-  , 'mod_p'
-  , 'mod_move'
-  , 'high_move'
-  , 'reduce_mosquitoes'
+  # 'base_model'
+  # , 'fixed_bite_rate'
+  # , 'fixed_movement'
+  # , 'fixed'
+  # , 'low_mu_v1'
+  # , 'high_mu_v1'
+  # , 'low_p'
+  # , 'mod_p'
+  # , 'mod_move'
+  # , 'high_move'
+  'reduce_mosquitoes'
   , 'reduce_NHP_movement'
-  , 'increase_vax'
+  , 'shift_vax'
 )

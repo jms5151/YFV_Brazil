@@ -4,6 +4,7 @@ library(ggpubr)
 
 # load model results
 resultsNew <- readRDS('../model_results.RData')
+# results2 <- readRDS('../model_results_interventions_long.RData')
 
 # source parameters code to bring some variables into environment
 source('parameters.R')
@@ -80,6 +81,9 @@ for(i in 1:10){
   corPrimates <- calc_correlation(df = x, rho = rho_monkeys, var1 = 'I_p_median', var2 = 'MG_primate')
   corDF[i,] <- c(unique(x$model), corHuman, corPrimates)
 }
+
+corDF[,c("correlation_humans", "correlation_primates")] <- lapply(corDF[,c("correlation_humans", "correlation_primates")], function(x) as.numeric(x))
+corDF$average_correlation <- rowMeans(corDF[,c("correlation_humans", "correlation_primates")])
 
 write.csv(corDF, 'model_validation.csv', row.names = F)
 
@@ -214,19 +218,22 @@ sensitivity_plot <- ggarrange(mu_comparison_plot, p_comparison_plot, move_compar
 ggsave(filename = '../Figures/Sensitivity_plot.pdf', sensitivity_plot, width = 12, height = 9)
 
 # Interventions 
-int_compare <- do.call(rbind, list(reduce_mosquitoes, reduce_NHP_movement, increase_vax))
+# add base_model
+int_compare <- do.call(rbind, list(reduce_mosquitoes, reduce_NHP_movement, shift_vax))
 int_compare <- int_compare[!duplicated(int_compare), ]
 
 # Define custom colors
 int_comp_colors <- c('reduce_mosquitoes' = '#ff595e'
                      , 'reduce_NHP_movement' = '#ffca3a'
-                     , 'increase_vax' = '#80d819'
+                     , 'shift_vax' = '#80d819'
+                     # , 'base_model' = '#1f324a'
                      , 'Observed' = 'black')
 
 # Custom labels for the legend
 int_comp_labels <- c('reduce_mosquitoes' = 'Vector control'
                      , 'reduce_NHP_movement' = 'Limit NHP movement into city'
-                     , 'increase_vax' = 'Start vaccination earlier'
+                     , 'shift_vax' = 'Start vaccination earlier'
+                     # , 'base_model' = 'Base model'
                      , 'Observed' = 'Observed')
 
 intervention_comparison_plot <- create_comparison_plot(df = int_compare, custom_colors = int_comp_colors, custom_labels = int_comp_labels)

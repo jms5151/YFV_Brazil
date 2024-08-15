@@ -1,7 +1,7 @@
 variable,definition,mean_value,sd,minimum,maximum,nonnumeric_value
 start_date,Starting date for simulations,,,,,11/1/2016
 end_date,Ending date for simulations,,,,,12/15/2018
-start_date_vaccination,Start date of vaccination campgain,,,,,2/25/2018
+start_date_vaccination,Start date of vaccination campgain,,,,,4/1/2017
 humans,Human population of Bella Horizontal,6000000,,,,
 mosquitoes,Initial Aedes aegypti mosquito population,300000,100000,,,
 monkeys,Initial monkey population,35000,10000,,,
