@@ -22,6 +22,7 @@ resultsNew <- foreach(yfv_params_idx = 1:length(yfv_params_list), .packages = 'd
   foreach(state_start_idx = 1:length(state_start_list), .packages = 'deSolve') %dopar% {
     state_start <- state_start_list[[state_start_idx]]
     yfv_params <- yfv_params_list[[yfv_params_idx]]
+    times <- times_list[[yfv_params_idx]] 
     result <- as.data.frame(
       ode(
         y = unlist(state_start),  # Ensure state_start is a numeric vector

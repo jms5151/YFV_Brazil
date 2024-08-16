@@ -4,7 +4,8 @@ library(ggpubr)
 
 # load model results
 resultsNew <- readRDS('../model_results.RData')
-# results2 <- readRDS('../model_results_interventions_long.RData')
+results2 <- readRDS('../model_results_interventions_long.RData')
+resultsNew[[14]] <- results2[[1]]
 
 # source parameters code to bring some variables into environment
 source('parameters.R')
@@ -54,7 +55,12 @@ get_medians <- function(dflist){
     ) %>%
     mutate('model' = names(yfv_params_list)[i])
   
-  df2$Date <- yfv_epidemic[1:nrow(df2)]
+  if(unique(df2$model) == 'reduce_mosquitoes' | unique(df2$model) == 'reduce_NHP_movement' | unique(df2$model) == 'shift_vax' | unique(df2$model) == 'combined_interventions'){
+    end_date_new <- start_date + (length(int_times) - 2)
+    df2$Date <- seq.Date(from = start_date, to = end_date_new, by = 1)
+  } else {
+    df2$Date <- yfv_epidemic[1:nrow(df2)]
+  }
   
   return(df2)
 }
@@ -121,7 +127,7 @@ for(i in 1:length(yfv_params_list)){
   # rename variable labels
   df_long_median$variable <- ifelse(df_long_median$variable == 'I_h_median', 'Infected people', 'Infected monkeys')
   
-    # rename dataset
+  # rename dataset
   assign(names(yfv_params_list)[i], df_long_median)
   
 }
@@ -219,22 +225,22 @@ ggsave(filename = '../Figures/Sensitivity_plot.pdf', sensitivity_plot, width = 1
 
 # Interventions 
 # add base_model
-int_compare <- do.call(rbind, list(reduce_mosquitoes, reduce_NHP_movement, shift_vax))
+int_compare <- do.call(rbind, list(reduce_mosquitoes, reduce_NHP_movement, shift_vax, combined_interventions))
 int_compare <- int_compare[!duplicated(int_compare), ]
 
 # Define custom colors
 int_comp_colors <- c('reduce_mosquitoes' = '#ff595e'
                      , 'reduce_NHP_movement' = '#ffca3a'
                      , 'shift_vax' = '#80d819'
-                     # , 'base_model' = '#1f324a'
+                     , 'combined_interventions' = '#1f324a'
                      , 'Observed' = 'black')
 
 # Custom labels for the legend
 int_comp_labels <- c('reduce_mosquitoes' = 'Vector control'
                      , 'reduce_NHP_movement' = 'Limit NHP movement into city'
                      , 'shift_vax' = 'Start vaccination earlier'
-                     # , 'base_model' = 'Base model'
+                     , 'combined_interventions' = 'Combined mosquito and vaccination control'
                      , 'Observed' = 'Observed')
 
 intervention_comparison_plot <- create_comparison_plot(df = int_compare, custom_colors = int_comp_colors, custom_labels = int_comp_labels)
-ggsave(filename = '../Figures/Intervention_comparison_plot.pdf', plot = intervention_comparison_plot, width = 10, height = 5.5)
+ggsave(filename = '../Figures/Intervention_comparison_plot_long.pdf', plot = intervention_comparison_plot, width = 10, height = 5.5)

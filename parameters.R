@@ -184,40 +184,54 @@ int_params_vax <- yfv_params_long
 vax_start_i <- as.Date('2017-01-01') + 30
 vax_length <- sum(v_ts > 0)
 prevaxtimes_i <- as.numeric(difftime(vax_start_i, start_date))
-vax_new <- c(rep(0, prevaxtimes_i), rep(vaccination_rate, vax_length))
-vax_new <- c(vax_new, rep(0, length(v_ts_long) - length(vax_new)))
-vax_new <- approxfun(int_times, vax_new)
-int_params_vax$V <- vax_new
+vax_early <- c(rep(0, prevaxtimes_i), rep(vaccination_rate, length(v_ts_long) - prevaxtimes_i)) #vax_length
+vax_early <- approxfun(int_times, vax_early)
+int_params_vax$V <- vax_early
+
+# base model 2: combined control
+# maybe these should start after the second wave?
+int_params_base <- int_params_reduce_mosq
+vax_new_base <- c(v_ts, rep(vaccination_rate, length(int_times) - length(v_ts)))
+vax_new_base <- approxfun(int_times, vax_new_base)
+int_params_base$V <- vax_new_base
 
 # create list of parameters lists
 yfv_params_list <- list(
-  # yfv_params
-  # , yfv_params_bite_fixed
-  # , yfv_params_move_fixed
-  # , yfv_params_fixed
-  # , yfv_params_low_mu_v1
-  # , yfv_params_high_mu_v1
-  # , yfv_params_low_p
-  # , yfv_params_mod_p
-  # , yfv_params_mod_move
-  # , yfv_params_high_move
-  int_params_reduce_mosq
+  yfv_params
+  , yfv_params_bite_fixed
+  , yfv_params_move_fixed
+  , yfv_params_fixed
+  , yfv_params_low_mu_v1
+  , yfv_params_high_mu_v1
+  , yfv_params_low_p
+  , yfv_params_mod_p
+  , yfv_params_mod_move
+  , yfv_params_high_move
+  , int_params_reduce_mosq
   , int_params_reduce_nhp_movement
   , int_params_vax
+  , int_params_base
 )
 
 names(yfv_params_list) <- c(
-  # 'base_model'
-  # , 'fixed_bite_rate'
-  # , 'fixed_movement'
-  # , 'fixed'
-  # , 'low_mu_v1'
-  # , 'high_mu_v1'
-  # , 'low_p'
-  # , 'mod_p'
-  # , 'mod_move'
-  # , 'high_move'
-  'reduce_mosquitoes'
+  'base_model'
+  , 'fixed_bite_rate'
+  , 'fixed_movement'
+  , 'fixed'
+  , 'low_mu_v1'
+  , 'high_mu_v1'
+  , 'low_p'
+  , 'mod_p'
+  , 'mod_move'
+  , 'high_move'
+  , 'reduce_mosquitoes'
   , 'reduce_NHP_movement'
   , 'shift_vax'
+  , 'combined_interventions'
 )
+
+times_list_1 <- list(times)
+times_list_1 <- rep(times_list_1, 10)
+times_list_2 <- list(int_times)
+times_list_2 <- rep(times_list_2, 4)
+times_list <- c(times_list_1, times_list_2)

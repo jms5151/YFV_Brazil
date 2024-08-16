@@ -32,7 +32,7 @@ yfv_model <- function(t, state, parameters) {
     dE_aa <- ((a1(t) * pMI3 * (I_h / (S_h + E_h + I_h + R_h))) * S_aa) - ((PDR_aa + mu_aa) * E_aa)
     dI_aa <- (PDR_aa * E_aa) - (mu_aa * I_aa)
 
-    list(c(dS_p, dI_p, dR_p, dS_c, dI_c, dR_c, dS_h, dE_h, dI_h, dR_h, dS_hm, dE_hm, dI_hm, dS_aa, dE_aa, dI_aa), 'a1' = (a1(t)), 'a2' = (a2(t))) # , 'a1' = (a1(t)), 'k' = K(t), 'vaccinated' = V(t) * (S_h + E_h + I_h + R_h)
+    list(c(dS_p, dI_p, dR_p, dS_c, dI_c, dR_c, dS_h, dE_h, dI_h, dR_h, dS_hm, dE_hm, dI_hm, dS_aa, dE_aa, dI_aa), 'a1' = (a1(t)), 'a2' = (a2(t))) 
   })
 }
 
