@@ -36,3 +36,10 @@ yfv_model <- function(t, state, parameters) {
   })
 }
 
+# Define an event function to halve only the Susceptible compartment at specific time points
+event_function <- function(t, state, parameters) {
+  state['S_aa'] <- state['S_aa'] / IC$mean_value[IC$variable == 'insecticide_effect']  # Cut the S compartment in half
+  state['E_aa'] <- state['S_aa'] / IC$mean_value[IC$variable == 'insecticide_effect']  # Cut the E compartment in half
+  state['I_aa'] <- state['S_aa'] / IC$mean_value[IC$variable == 'insecticide_effect']  # Cut the I compartment in half
+  return(state)
+}

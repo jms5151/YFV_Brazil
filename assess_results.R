@@ -15,6 +15,7 @@ rho_humans = 0.12 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4632853/#:~:tex
 rho_monkeys = p$value[p$variable == 'p']
   
 # format validation data
+# allow for observations to extend for the interventions
 val_data <- read.csv('../validation_data.csv')
 val_data$Date <- as.Date(val_data$Month, '%m/%d/%Y')
 val_data_long <- val_data %>%

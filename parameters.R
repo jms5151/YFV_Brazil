@@ -163,15 +163,8 @@ yfv_params_long$br1 <- br1approx_long
 yfv_params_long$br2 <- br2approx_long
 yfv_params_long$m <- mapprox_long
 
-intervention_date <- as.Date('2017-03-01')
+intervention_date <- as.Date('2016-12-15')
 intervention_date_id <- which(yfv_epidemic == intervention_date)
-
-# reduce mosquitoes
-int_params_reduce_mosq <- yfv_params_long
-k_new <- c(k_long[1:(intervention_date_id-1)], k_long[intervention_date_id:length(k_long)]/2)
-k_new <- approxfun(int_times, k_new)
-
-int_params_reduce_mosq$K <- k_new
 
 # reduce NHP movement
 int_params_reduce_nhp_movement <- yfv_params_long
@@ -181,19 +174,10 @@ int_params_reduce_nhp_movement$m <- move_new
 
 # shift vaccination earlier
 int_params_vax <- yfv_params_long
-vax_start_i <- as.Date('2017-01-01') + 30
-vax_length <- sum(v_ts > 0)
-prevaxtimes_i <- as.numeric(difftime(vax_start_i, start_date))
-vax_early <- c(rep(0, prevaxtimes_i), rep(vaccination_rate, length(v_ts_long) - prevaxtimes_i)) #vax_length
+vax_start_i <- intervention_date_id + 30
+vax_early <- c(rep(0, vax_start_i), rep(vaccination_rate, length(v_ts_long) - vax_start_i))
 vax_early <- approxfun(int_times, vax_early)
 int_params_vax$V <- vax_early
-
-# base model 2: combined control
-# maybe these should start after the second wave?
-int_params_base <- int_params_reduce_mosq
-vax_new_base <- c(v_ts, rep(vaccination_rate, length(int_times) - length(v_ts)))
-vax_new_base <- approxfun(int_times, vax_new_base)
-int_params_base$V <- vax_new_base
 
 # create list of parameters lists
 yfv_params_list <- list(
@@ -207,10 +191,10 @@ yfv_params_list <- list(
   , yfv_params_mod_p
   , yfv_params_mod_move
   , yfv_params_high_move
-  , int_params_reduce_mosq
+  , yfv_params_long
   , int_params_reduce_nhp_movement
   , int_params_vax
-  , int_params_base
+  , int_params_vax
 )
 
 names(yfv_params_list) <- c(
@@ -235,3 +219,8 @@ times_list_1 <- rep(times_list_1, 10)
 times_list_2 <- list(int_times)
 times_list_2 <- rep(times_list_2, 4)
 times_list <- c(times_list_1, times_list_2)
+
+event_times <- which(k_long == max(k_long))
+
+# Specify the specific yfv_params_idx for which you want to apply the event
+specific_idx <- which(names(yfv_params_list) == 'reduce_mosquitoes' | names(yfv_params_list) == 'combined_interventions')
