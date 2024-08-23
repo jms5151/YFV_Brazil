@@ -137,7 +137,7 @@ yfv_params_high_move$m <- mapprox_high
 
 # interventions
 # these run longer so need to update time frame for all time varying parameters
-int_times = seq(1:(10*365)) # 10 years
+int_times = seq(1:(8*365)) # 10 years
 k_long <- seasonal_forcing(times = int_times, high = p$value[p$variable == 'K_wet'], low = p$value[p$variable == 'K_dry'])
 br_aa_long <- seasonal_forcing(times = int_times, high = p$value[p$variable == 'mu_aa_high'], low = p$value[p$variable == 'mu_aa_low'])
 br_hm_long <- seasonal_forcing(times = int_times, high = p$value[p$variable == 'mu_hm_high'], low = p$value[p$variable == 'mu_hm_low'])
@@ -220,7 +220,9 @@ times_list_2 <- list(int_times)
 times_list_2 <- rep(times_list_2, 4)
 times_list <- c(times_list_1, times_list_2)
 
-event_times <- which(k_long == max(k_long))
+quant50 <- unname(quantile(k_long, 0.5))
+event_times <- which(k_long > quant50)
+event_times <- event_times[intervention_date_id:length(event_times)]
 
 # Specify the specific yfv_params_idx for which you want to apply the event
 specific_idx <- which(names(yfv_params_list) == 'reduce_mosquitoes' | names(yfv_params_list) == 'combined_interventions')

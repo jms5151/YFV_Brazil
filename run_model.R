@@ -53,3 +53,4 @@ stopCluster(cl)
 
 # save
 saveRDS(object = resultsNew, file = '../model_results.RData')
+saveRDS(object = resultsNew, file = '../interventions.RData')
