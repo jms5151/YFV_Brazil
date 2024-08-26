@@ -4,8 +4,6 @@ library(ggpubr)
 
 # load model results
 resultsNew <- readRDS('../model_results.RData')
-results2 <- readRDS('../model_results_interventions_long.RData')
-resultsNew[[14]] <- results2[[1]]
 
 # source parameters code to bring some variables into environment
 source('parameters.R')
@@ -252,25 +250,17 @@ int_comp_colors <- c('reduce_mosquitoes' = '#ff595e'
 
 # Custom labels for the legend
 int_comp_labels <- c('reduce_mosquitoes' = 'Vector control'
-                     , 'reduce_NHP_movement' = 'Conservation (limit NHP \nmovement into city)'
+                     , 'reduce_NHP_movement' = 'Conservation (limit NHP movement into city)'
                      , 'shift_vax' = 'Start vaccination earlier'
                      , 'combined_interventions' = 'All three interventions combined'
                      , 'base_model' = 'Base model'
                      , 'Observed' = 'Observed')
 
 intervention_comparison_plot_long <- create_comparison_plot(df = int_compare, custom_colors = int_comp_colors, custom_labels = int_comp_labels) + 
-  theme(legend.position = c(0.6, 0.7)
+  theme(legend.position = c(0.77, 0.65)
         , legend.background=element_blank()
         , strip.text = element_blank()
         ) + 
   ylab('')
 
-intervention_comparison_plot_short <- intervention_comparison_plot_long + 
-  xlim(start_date, end_date - 180) + 
-  theme(legend.position = 'none') +
-  ggtitle('Interventions (human cases)')
-
-library(ggpubr)
-interventions_combined <- ggarrange(intervention_comparison_plot_short, intervention_comparison_plot_long, ncol = 2)
-
-ggsave(filename = '../Figures/Intervention_comparison_plot.pdf', plot = interventions_combined, width = 10, height = 4.5)
+ggsave(filename = '../Figures/Intervention_comparison_plot_long.pdf', plot = intervention_comparison_plot_long, width = 8.5, height = 3.5)
