@@ -201,7 +201,16 @@ mu_compare$model <- factor(mu_compare$model, levels = c('high_mu_v1', 'base_mode
 mu_colors <- c('low_mu_v1' = '#1f324a', 'base_model' = '#1561b0', 'high_mu_v1' = '#5fa6dc', 'Observed' = 'black')
 mu_labels <- c('low_mu_v1' = '20%', 'base_model' = '50%', 'high_mu_v1' = '80%', 'Observed' = 'Observed')
 
-mu_comparison_plot <- create_comparison_plot(df = mu_compare, custom_colors = mu_colors, custom_labels = mu_labels, titleName = 'YFV monkey mortality rate') + theme(legend.position = c(0.9, 0.6)) + xlim(start_date, end_date - 180)
+mu_comparison_plot <- create_comparison_plot(
+  df = mu_compare
+  , custom_colors = mu_colors
+  , custom_labels = mu_labels
+  , titleName = 'YFV monkey mortality rate'
+  ) + 
+  theme(legend.position = c(0.16, 0.6)
+        , legend.background=element_blank()) +  
+  xlim(start_date, end_date - 180) +
+  xlab('')
 
 # Compare Hm probability of biting NHP vs humans
 p_compare <- do.call(rbind, list(base_model, low_p, mod_p))
@@ -211,7 +220,17 @@ p_compare$model <- factor(p_compare$model, levels = c('base_model', 'mod_p', 'lo
 p_colors <- c('low_p' = '#1f324a', 'mod_p' = '#1561b0', 'base_model' = '#5fa6dc', 'Observed' = 'black')
 p_labels <- c('low_p' = '30%', 'mod_p' = '50%', 'base_model' = '70%', 'Observed' = 'Observed')
 
-p_comparison_plot <- create_comparison_plot(df = p_compare, custom_colors = p_colors, custom_labels = p_labels, titleName = 'Proportion Hm mosquitoes biting NHP vs humans') + theme(legend.position = c(0.9, 0.6)) + xlim(start_date, end_date - 180)
+p_comparison_plot <- create_comparison_plot(
+  df = p_compare
+  , custom_colors = p_colors
+  , custom_labels = p_labels
+  , titleName = 'Proportion Hm mosquitoes biting NHP vs humans'
+  ) + 
+  theme(legend.position = c(0.16, 0.6)
+        , legend.background=element_blank()
+        , strip.text = element_blank()) +
+  xlim(start_date, end_date - 180) +
+  xlab('')
 
 # Compare seasonal monkey movement rates
 move_compare <- do.call(rbind, list(base_model, mod_move, high_move))
@@ -221,7 +240,16 @@ move_compare$model <- factor(move_compare$model, levels = c('high_move', 'mod_mo
 move_colors <- c('base_model' = '#1f324a', 'mod_move' = '#1561b0', 'high_move' = '#5fa6dc', 'Observed' = 'black')
 move_labels <- c('base_model' = '0.5%', 'mod_move' = '2%', 'high_move' = '10%', 'Observed' = 'Observed')
 
-move_comparison_plot <- create_comparison_plot(df = move_compare, custom_colors = move_colors, custom_labels = move_labels, titleName = 'Movement rate of monkeys from forest to city (%/month)') + theme(legend.position = c(0.9, 0.6)) + xlim(start_date, end_date - 180)
+move_comparison_plot <- create_comparison_plot(
+  df = move_compare
+  , custom_colors = move_colors
+  , custom_labels = move_labels
+  , titleName = 'Movement rate of monkeys from forest to city (%/month)'
+  ) + 
+  theme(legend.position = c(0.16, 0.6)
+        , legend.background=element_blank()
+        , strip.text = element_blank()) + 
+  xlim(start_date, end_date - 180)
 
 # combine plots
 sensitivity_plot <- ggarrange(mu_comparison_plot, p_comparison_plot, move_comparison_plot, ncol = 1)
@@ -260,7 +288,8 @@ intervention_comparison_plot_long <- create_comparison_plot(df = int_compare, cu
   theme(legend.position = c(0.77, 0.65)
         , legend.background=element_blank()
         , strip.text = element_blank()
-        ) + 
-  ylab('')
+        ) +
+  ggtitle('Intervention comparison') +
+  ylab('Human YFV cases')
 
 ggsave(filename = '../Figures/Intervention_comparison_plot_long.pdf', plot = intervention_comparison_plot_long, width = 8.5, height = 3.5)
