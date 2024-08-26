@@ -5,7 +5,7 @@ library(ggpubr)
 # load model results
 resultsNew <- readRDS('../model_results.RData')
 results2 <- readRDS('../model_results_interventions_long.RData')
-resultsNew[[13]] <- results2[[2]]
+resultsNew[[14]] <- results2[[1]]
 
 # source parameters code to bring some variables into environment
 source('parameters.R')
@@ -19,7 +19,7 @@ rho_monkeys = p$value[p$variable == 'p']
 val_data <- read.csv('../validation_data.csv')
 val_data$Date <- as.Date(val_data$Month, '%m/%d/%Y')
 val_data_long <- val_data %>%
-  filter(Date >= start_date & Date <= end_date) %>%
+  filter(Date >= start_date) %>% 
   pivot_longer(
     cols = c(MG_human, MG_primate),
     names_to = "variable",
@@ -123,8 +123,14 @@ for(i in 1:length(yfv_params_list)){
     as.data.frame()
   
   # add observed data
-  df_long_median <- rbind(df_long_median, val_data_long[,colnames(df_long_median)])
-  
+  if(unique(df2$model) == 'reduce_mosquitoes' | unique(df2$model) == 'reduce_NHP_movement' | unique(df2$model) == 'shift_vax' | unique(df2$model) == 'combined_interventions'){
+    df_long_median <- rbind(df_long_median, val_data_long[,colnames(df_long_median)])
+  } else {
+    x <- val_data_long %>%
+      filter(Date <= end_date) 
+    df_long_median <- rbind(df_long_median, x[,colnames(df_long_median)])
+  }
+
   # rename variable labels
   df_long_median$variable <- ifelse(df_long_median$variable == 'I_h_median', 'Infected people', 'Infected monkeys')
   
@@ -132,7 +138,6 @@ for(i in 1:length(yfv_params_list)){
   assign(names(yfv_params_list)[i], df_long_median)
   
 }
-
 
 # Plotting function
 create_comparison_plot <- function(df, custom_colors, custom_labels, titleName = '') {
@@ -187,7 +192,7 @@ mod_comp_labels <- c('base_model' = 'Seasonal primate movement & seasonal biting
                    , 'Observed' = 'Observed')
 
 
-model_comparison_plot <- create_comparison_plot(df = mod_compare, custom_colors = mod_comp_colors, custom_labels = mod_comp_labels)
+model_comparison_plot <- create_comparison_plot(df = mod_compare, custom_colors = mod_comp_colors, custom_labels = mod_comp_labels) + xlim(start_date, end_date - 180)
 ggsave(filename = '../Figures/Model_comparison_plot.pdf', plot = model_comparison_plot, width = 10, height = 5.5)
 
 # Compare YFV primate mortality rates
@@ -198,7 +203,7 @@ mu_compare$model <- factor(mu_compare$model, levels = c('high_mu_v1', 'base_mode
 mu_colors <- c('low_mu_v1' = '#1f324a', 'base_model' = '#1561b0', 'high_mu_v1' = '#5fa6dc', 'Observed' = 'black')
 mu_labels <- c('low_mu_v1' = '20%', 'base_model' = '50%', 'high_mu_v1' = '80%', 'Observed' = 'Observed')
 
-mu_comparison_plot <- create_comparison_plot(df = mu_compare, custom_colors = mu_colors, custom_labels = mu_labels, titleName = 'YFV monkey mortality rate') + theme(legend.position = c(0.9, 0.6))
+mu_comparison_plot <- create_comparison_plot(df = mu_compare, custom_colors = mu_colors, custom_labels = mu_labels, titleName = 'YFV monkey mortality rate') + theme(legend.position = c(0.9, 0.6)) + xlim(start_date, end_date - 180)
 
 # Compare Hm probability of biting NHP vs humans
 p_compare <- do.call(rbind, list(base_model, low_p, mod_p))
@@ -208,7 +213,7 @@ p_compare$model <- factor(p_compare$model, levels = c('base_model', 'mod_p', 'lo
 p_colors <- c('low_p' = '#1f324a', 'mod_p' = '#1561b0', 'base_model' = '#5fa6dc', 'Observed' = 'black')
 p_labels <- c('low_p' = '30%', 'mod_p' = '50%', 'base_model' = '70%', 'Observed' = 'Observed')
 
-p_comparison_plot <- create_comparison_plot(df = p_compare, custom_colors = p_colors, custom_labels = p_labels, titleName = 'Proportion Hm mosquitoes biting NHP vs humans') + theme(legend.position = c(0.9, 0.6))
+p_comparison_plot <- create_comparison_plot(df = p_compare, custom_colors = p_colors, custom_labels = p_labels, titleName = 'Proportion Hm mosquitoes biting NHP vs humans') + theme(legend.position = c(0.9, 0.6)) + xlim(start_date, end_date - 180)
 
 # Compare seasonal monkey movement rates
 move_compare <- do.call(rbind, list(base_model, mod_move, high_move))
@@ -218,7 +223,7 @@ move_compare$model <- factor(move_compare$model, levels = c('high_move', 'mod_mo
 move_colors <- c('base_model' = '#1f324a', 'mod_move' = '#1561b0', 'high_move' = '#5fa6dc', 'Observed' = 'black')
 move_labels <- c('base_model' = '0.5%', 'mod_move' = '2%', 'high_move' = '10%', 'Observed' = 'Observed')
 
-move_comparison_plot <- create_comparison_plot(df = move_compare, custom_colors = move_colors, custom_labels = move_labels, titleName = 'Movement rate of monkeys from forest to city (%/month)') + theme(legend.position = c(0.9, 0.6))
+move_comparison_plot <- create_comparison_plot(df = move_compare, custom_colors = move_colors, custom_labels = move_labels, titleName = 'Movement rate of monkeys from forest to city (%/month)') + theme(legend.position = c(0.9, 0.6)) + xlim(start_date, end_date - 180)
 
 # combine plots
 sensitivity_plot <- ggarrange(mu_comparison_plot, p_comparison_plot, move_comparison_plot, ncol = 1)
@@ -247,9 +252,9 @@ int_comp_colors <- c('reduce_mosquitoes' = '#ff595e'
 
 # Custom labels for the legend
 int_comp_labels <- c('reduce_mosquitoes' = 'Vector control'
-                     , 'reduce_NHP_movement' = 'Limit NHP movement into city'
+                     , 'reduce_NHP_movement' = 'Conservation (limit NHP \nmovement into city)'
                      , 'shift_vax' = 'Start vaccination earlier'
-                     , 'combined_interventions' = 'Combined mosquito and vaccination control'
+                     , 'combined_interventions' = 'All three interventions combined'
                      , 'base_model' = 'Base model'
                      , 'Observed' = 'Observed')
 
@@ -261,7 +266,7 @@ intervention_comparison_plot_long <- create_comparison_plot(df = int_compare, cu
   ylab('')
 
 intervention_comparison_plot_short <- intervention_comparison_plot_long + 
-  xlim(start_date, end_date - 100) + 
+  xlim(start_date, end_date - 180) + 
   theme(legend.position = 'none') +
   ggtitle('Interventions (human cases)')
 

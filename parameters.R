@@ -168,7 +168,7 @@ intervention_date_id <- which(yfv_epidemic == intervention_date)
 
 # reduce NHP movement
 int_params_reduce_nhp_movement <- yfv_params_long
-move_new <- c(movement_long[1:(intervention_date_id-1)], movement_long[intervention_date_id:length(movement_long)]/2)
+move_new <- c(movement_long[1:(intervention_date_id-1)], movement_long[intervention_date_id:length(movement_long)]/4)
 move_new <- approxfun(int_times, move_new)
 int_params_reduce_nhp_movement$m <- move_new
 
@@ -178,6 +178,10 @@ vax_start_i <- intervention_date_id + 30
 vax_early <- c(rep(0, vax_start_i), rep(vaccination_rate, length(v_ts_long) - vax_start_i))
 vax_early <- approxfun(int_times, vax_early)
 int_params_vax$V <- vax_early
+
+# combined
+int_params_combined <- int_params_vax
+int_params_combined$m <- move_new
 
 # create list of parameters lists
 yfv_params_list <- list(
@@ -194,7 +198,7 @@ yfv_params_list <- list(
   , yfv_params_long
   , int_params_reduce_nhp_movement
   , int_params_vax
-  , int_params_vax
+  , int_params_combined
 )
 
 names(yfv_params_list) <- c(
