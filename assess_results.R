@@ -150,8 +150,8 @@ create_comparison_plot <- function(df, custom_colors, custom_labels, titleName =
   p <- ggplot(df_model, aes(x = Date, y = value, color = model, fill = model)) +
     geom_ribbon(aes(ymin = I_25, ymax = I_75), alpha = 0.3, linetype = 0) +
     geom_line(lwd = 1.1) +
-    geom_line(data = df_observed, aes(x = Date, y = value), lwd = 1) +
-    geom_point(data = df_observed, aes(x = Date, y = value), size = 3) +
+    geom_line(data = df_observed, aes(x = Date, y = value), lwd = 0.9) +
+    geom_point(data = df_observed, aes(x = Date, y = value), size = 2) +
     facet_wrap(~variable, scales = 'free') +
     theme_bw() +
     xlab('Date') +
@@ -272,7 +272,7 @@ int_compare$model <- factor(int_compare$model, levels = c('Observed'
 int_comp_colors <- c('reduce_mosquitoes' = '#ff595e'
                      , 'reduce_NHP_movement' = '#ffca3a'
                      , 'shift_vax' = '#80d819'
-                     , 'combined_interventions' = '#1f324a'
+                     , 'combined_interventions' = 'purple'
                      ,  'base_model' = '#1abc9c'
                      , 'Observed' = 'black')
 
