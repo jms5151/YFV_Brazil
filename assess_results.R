@@ -164,7 +164,10 @@ create_comparison_plot <- function(df, custom_colors, custom_labels, titleName =
           axis.title.y = element_text(size = 14),
           strip.text = element_text(size = 12)) +
     theme(legend.position = 'bottom') +
-    guides(color = guide_legend(ncol = 1), fill = guide_legend(ncol = 1)) +
+    guides(color = guide_legend(ncol = 1, override.aes = list(linetype = c(rep("solid", length(custom_labels)-1), "solid"),
+                                                              shape = c(rep(NA, length(custom_labels)-1), 16))),
+           fill = guide_legend(ncol = 1)) +
+    # guides(color = guide_legend(ncol = 1), fill = guide_legend(ncol = 1)) +
     ggtitle(titleName)
   
   return(p)
