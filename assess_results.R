@@ -202,7 +202,7 @@ mu_compare <- mu_compare[!duplicated(mu_compare), ]
 mu_compare$model <- factor(mu_compare$model, levels = c('high_mu_v1', 'base_model', 'low_mu_v1', 'Observed')) 
   
 mu_colors <- c('low_mu_v1' = '#1f324a', 'base_model' = '#1561b0', 'high_mu_v1' = '#5fa6dc', 'Observed' = 'black')
-mu_labels <- c('low_mu_v1' = '20%', 'base_model' = '50%', 'high_mu_v1' = '80%', 'Observed' = 'Observed')
+mu_labels <- c('low_mu_v1' = '20%', 'base_model' = '50%*', 'high_mu_v1' = '80%', 'Observed' = 'Observed')
 
 mu_comparison_plot <- create_comparison_plot(
   df = mu_compare
@@ -221,7 +221,7 @@ p_compare <- p_compare[!duplicated(p_compare), ]
 p_compare$model <- factor(p_compare$model, levels = c('base_model', 'mod_p', 'low_p', 'Observed')) 
 
 p_colors <- c('low_p' = '#1f324a', 'mod_p' = '#1561b0', 'base_model' = '#5fa6dc', 'Observed' = 'black')
-p_labels <- c('low_p' = '30%', 'mod_p' = '50%', 'base_model' = '70%', 'Observed' = 'Observed')
+p_labels <- c('low_p' = '30%', 'mod_p' = '50%', 'base_model' = '70%*', 'Observed' = 'Observed')
 
 p_comparison_plot <- create_comparison_plot(
   df = p_compare
@@ -241,7 +241,7 @@ move_compare <- move_compare[!duplicated(move_compare), ]
 move_compare$model <- factor(move_compare$model, levels = c('high_move', 'mod_move', 'base_model', 'Observed')) 
 
 move_colors <- c('base_model' = '#1f324a', 'mod_move' = '#1561b0', 'high_move' = '#5fa6dc', 'Observed' = 'black')
-move_labels <- c('base_model' = '0.5%', 'mod_move' = '2%', 'high_move' = '10%', 'Observed' = 'Observed')
+move_labels <- c('base_model' = '0.5%*', 'mod_move' = '2%', 'high_move' = '10%', 'Observed' = 'Observed')
 
 move_comparison_plot <- create_comparison_plot(
   df = move_compare
