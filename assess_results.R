@@ -61,6 +61,9 @@ get_medians <- function(dflist){
     df2$Date <- yfv_epidemic[1:nrow(df2)]
   }
   
+  # lead modeled human cases by 1 month
+  df2[,c('I_h_median', 'I_h_25', 'I_h_75')] <- lapply(df2[,c('I_h_median', 'I_h_25', 'I_h_75')], function(x) lead(x, n = 30))
+  
   return(df2)
 }
 
@@ -71,14 +74,17 @@ calc_correlation <- function(df, rho, var1, var2){
   x2[, var1] <- x2[, var1] * rho
   x3 <- x2[,c(var1, var2)]
   x3 <- subset(x3, !is.na(x3[,var2]))
-  # Calculate the cross-correlation function
-  ccf_result <- ccf(x3[,var1], x3[,var2], lag.max = 0, plot = FALSE)
-  dist_out <- round(ccf_result$acf[which(ccf_result$lag == 0)], 2)
+  # calculate correlation and p-value
+  corrsum <- cor.test(x3[,var1], x3[,var2])
+  corVal <- round(corrsum$estimate, 2)
+  corPval <- round(corrsum$p.value, 3)
+  # create output
+  dist_out <- data.frame('corr' = corVal, 'pvalue' = corPval)
   return(dist_out)
 }
 
-corDF <- data.frame(matrix(nrow = 0, ncol = 3))
-colnames(corDF) <- c('model', 'correlation_humans', 'correlation_primates')
+corDF <- data.frame(matrix(nrow = 0, ncol = 5))
+colnames(corDF) <- c('model', 'correlation_humans', 'pvalue_humans', 'correlation_primates', 'pvalue_primates')
 
 for(i in 1:10){
   x <- get_medians(dflist = resultsNew[[i]])
@@ -87,8 +93,8 @@ for(i in 1:10){
   corDF[i,] <- c(unique(x$model), corHuman, corPrimates)
 }
 
-corDF[,c("correlation_humans", "correlation_primates")] <- lapply(corDF[,c("correlation_humans", "correlation_primates")], function(x) as.numeric(x))
-corDF$average_correlation <- rowMeans(corDF[,c("correlation_humans", "correlation_primates")])
+corDF[,c('correlation_humans', 'correlation_primates')] <- lapply(corDF[,c('correlation_humans', 'correlation_primates')], function(x) as.numeric(x))
+corDF$average_correlation <- rowMeans(corDF[,c('correlation_humans', 'correlation_primates')])
 
 write.csv(corDF, 'model_validation.csv', row.names = F)
 
@@ -146,28 +152,46 @@ create_comparison_plot <- function(df, custom_colors, custom_labels, titleName =
   df_observed <- df[df$model == 'Observed', ]
   df_model <- df[df$model != 'Observed', ]
   
+  # Create a grid of all combinations of `model` and `variable`
+  facet_combinations <- expand.grid(
+    model = unique(df_model$model),
+    variable = unique(df_model$variable)
+  )
+  
+  # Replicate df_observed for each combination
+  df_observed_expanded <- merge(df_observed, facet_combinations, by = 'variable')
+  
   # plot
   p <- ggplot(df_model, aes(x = Date, y = value, color = model, fill = model)) +
     geom_ribbon(aes(ymin = I_25, ymax = I_75), alpha = 0.3, linetype = 0) +
     geom_line(lwd = 1.1) +
-    geom_line(data = df_observed, aes(x = Date, y = value), lwd = 0.9) +
-    geom_point(data = df_observed, aes(x = Date, y = value), size = 2) +
-    facet_wrap(~variable, scales = 'free') +
+    geom_line(data = df_observed_expanded, aes(x = Date, y = value), lwd = 0.9, inherit.aes = FALSE) +
+    geom_point(data = df_observed_expanded, aes(x = Date, y = value), size = 2, inherit.aes = FALSE) +
+    facet_grid(model ~ variable) +
     theme_bw() +
     xlab('Date') +
     ylab('Infected') +
     scale_color_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
     scale_fill_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
-    theme(legend.title = element_text(size = 12),
-          legend.text = element_text(size = 10),
-          axis.title.x = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          strip.text = element_text(size = 12)) +
+    theme(
+      legend.title = element_text(size = 12),
+      legend.text = element_text(size = 10),
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 14),
+      strip.text = element_text(size = 12),
+      strip.text.y = element_blank()
+    ) +
     theme(legend.position = 'bottom') +
-    guides(color = guide_legend(ncol = 1, override.aes = list(linetype = c(rep("solid", length(custom_labels)-1), "solid"),
-                                                              shape = c(rep(NA, length(custom_labels)-1), 16))),
-           fill = guide_legend(ncol = 1)) +
-    # guides(color = guide_legend(ncol = 1), fill = guide_legend(ncol = 1)) +
+    guides(
+      color = guide_legend(
+        ncol = 1,
+        override.aes = list(
+          linetype = rep("solid", length(unique_levels)),
+          shape = c(rep(NA, length(unique_levels) - 1), 16)  # Adjust based on legend requirements
+        )
+      ),
+      fill = guide_legend(ncol = 1)
+    ) +
     ggtitle(titleName)
   
   return(p)
@@ -180,21 +204,47 @@ mod_compare <- mod_compare[!duplicated(mod_compare), ]
 
 # Define custom colors
 mod_comp_colors <- c('base_model' = '#149889'
+                   , 'fixed' = '#c5a030'
                    , 'fixed_bite_rate' = '#82118e'
                    , 'fixed_movement' = '#2e3d54'
-                   , 'fixed' = '#c5a030'
-                   , 'Observed' = 'black')
+                   )
 
 # Custom labels for the legend
 mod_comp_labels <- c('base_model' = 'Seasonal primate movement & seasonal biting rate'
-                   , 'fixed_bite_rate' = 'No primate movement, seasonally-driven biting rate'
-                   , 'fixed_movement' = 'Seasonally-driven primate movement, fixed biting rate'
-                   , 'fixed' = 'No primate movement & fixed biting rate'
-                   , 'Observed' = 'Observed')
+                     , 'fixed' = 'No primate movement & fixed biting rate'
+                     , 'fixed_bite_rate' = 'No primate movement, seasonally-driven biting rate'
+                     , 'fixed_movement' = 'Seasonally-driven primate movement, fixed biting rate'
+                   )
 
 
 model_comparison_plot <- create_comparison_plot(df = mod_compare, custom_colors = mod_comp_colors, custom_labels = mod_comp_labels) + xlim(start_date, end_date - 180)
-ggsave(filename = '../Figures/Model_comparison_plot.pdf', plot = model_comparison_plot, width = 10, height = 5.5)
+ggsave(filename = '../Figures/Model_comparison_plot.pdf', plot = model_comparison_plot, width = 7, height = 8.5)
+
+
+test <- subset(df_model, model == 'base_model')
+ggplot(df_model, aes(x = Date, y = value, color = model, fill = model)) +
+  geom_ribbon(aes(ymin = I_25, ymax = I_75), alpha = 0.3, linetype = 0) +
+  geom_line(lwd = 1.1) +
+  geom_line(data = df_observed, aes(x = Date, y = value), lwd = 0.9) +
+  geom_point(data = df_observed, aes(x = Date, y = value), size = 2) +
+  facet_grid(model~variable) +
+  theme_bw() +
+  xlab('Date') +
+  ylab('Infected') +
+  scale_color_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
+  scale_fill_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
+  theme(legend.title = element_text(size = 12),
+        legend.text = element_text(size = 10),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        strip.text = element_text(size = 12)) +
+  theme(legend.position = 'bottom') +
+  guides(color = guide_legend(ncol = 1
+        , override.aes = list(linetype = c(rep("solid", length(custom_labels)-1)
+        , "solid")
+        , shape = c(rep(NA, length(custom_labels)-1), 16)))
+        , fill = guide_legend(ncol = 1))
+
 
 # Compare YFV primate mortality rates
 mu_compare <- do.call(rbind, list(base_model, low_mu_v1, high_mu_v1))

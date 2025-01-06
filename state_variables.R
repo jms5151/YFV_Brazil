@@ -13,7 +13,7 @@ vaccinated = IC$mean_value[IC$variable=='vaccinated']
 # set up N initial conditions
 N = 500
 mosquito_n = rnorm(N, IC$mean_value[IC$variable=='mosquitoes'], IC$sd[IC$variable=='mosquitoes'])
-hm_prop_n <- runif(N, IC$minimum[IC$variable == 'hm_prop'], IC$maximum[IC$variable == 'hm_prop'])
+hm_prop_n = runif(N, IC$minimum[IC$variable == 'hm_prop'], IC$maximum[IC$variable == 'hm_prop'])
 monkey_n = rnorm(N, IC$mean_value[IC$variable=='monkeys'], IC$sd[IC$variable=='monkeys'])
 marmoset_n = monkey_n * 2
 inForest_n = rnorm(N, IC$mean_value[IC$variable=='inForest'], IC$sd[IC$variable=='inForest']) # make sure value doesn't exceed 1
