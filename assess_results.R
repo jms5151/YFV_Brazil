@@ -45,16 +45,16 @@ get_medians <- function(dflist){
     na.omit() %>%
     group_by(time) %>%
     summarise(
-      I_h_median = quantile(I_h, 0.5)
-      , I_h_25 = quantile(I_h, 0.25)
-      , I_h_75 = quantile(I_h, 0.75)
-      , I_p_median = quantile(I_p, 0.5)
-      , I_p_25 = quantile(I_p, 0.25)
-      , I_p_75 = quantile(I_p, 0.75)
+      I_h_median = quantile(I_h, 0.5, na.rm = T)
+      , I_h_25 = quantile(I_h, 0.25, na.rm = T)
+      , I_h_75 = quantile(I_h, 0.75, na.rm = T)
+      , I_p_median = quantile(I_p, 0.5, na.rm = T)
+      , I_p_25 = quantile(I_p, 0.25, na.rm = T)
+      , I_p_75 = quantile(I_p, 0.75, na.rm = T)
     ) %>%
     mutate('model' = names(yfv_params_list)[i])
   
-  if(unique(df2$model) == 'reduce_mosquitoes' | unique(df2$model) == 'reduce_NHP_movement' | unique(df2$model) == 'shift_vax' | unique(df2$model) == 'combined_interventions'){
+  if(grepl('reduce|shift|combined', unique(df2$model))==T){
     end_date_new <- start_date + (nrow(df2) - 1)
     df2$Date <- seq.Date(from = start_date, to = end_date_new, by = 1)
   } else {
@@ -127,7 +127,7 @@ for(i in 1:length(yfv_params_list)){
     as.data.frame()
   
   # add observed data
-  if(unique(df2$model) == 'reduce_mosquitoes' | unique(df2$model) == 'reduce_NHP_movement' | unique(df2$model) == 'shift_vax' | unique(df2$model) == 'combined_interventions'){
+  if(grepl('reduce|shift|combined', unique(df2$model))==T){
     df_long_median <- rbind(df_long_median, val_data_long[,colnames(df_long_median)])
   } else {
     x <- val_data_long %>%
@@ -144,24 +144,7 @@ for(i in 1:length(yfv_params_list)){
 }
 
 # Plotting function
-create_comparison_plot <- function(df, custom_colors, custom_labels, titleName = '') {
-  df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_25', 'I_75')] <- lapply(df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_25', 'I_75')], function(x) x * rho_humans)
-  df[df$model != 'Observed' & df$variable == 'Infected monkeys', c('value', 'I_25', 'I_75')] <- lapply(df[df$model != 'Observed' & df$variable == 'Infected monkeys', c('value', 'I_25', 'I_75')], function(x) x * rho_monkeys)
-  
-  # Separate the observed data
-  df_observed <- df[df$model == 'Observed', ]
-  df_model <- df[df$model != 'Observed', ]
-  
-  # Create a grid of all combinations of `model` and `variable`
-  facet_combinations <- expand.grid(
-    model = unique(df_model$model),
-    variable = unique(df_model$variable)
-  )
-  
-  # Replicate df_observed for each combination
-  df_observed_expanded <- merge(df_observed, facet_combinations, by = 'variable')
-  
-  # plot
+panelPlot <- function(df_model, df_observed_expanded, custom_colors, custom_labels, titleName = ''){
   p <- ggplot(df_model, aes(x = Date, y = value, color = model, fill = model)) +
     geom_ribbon(aes(ymin = I_25, ymax = I_75), alpha = 0.3, linetype = 0) +
     geom_line(lwd = 1.1) +
@@ -186,13 +169,67 @@ create_comparison_plot <- function(df, custom_colors, custom_labels, titleName =
       color = guide_legend(
         ncol = 1,
         override.aes = list(
-          linetype = rep("solid", length(unique_levels)),
-          shape = c(rep(NA, length(unique_levels) - 1), 16)  # Adjust based on legend requirements
+          linetype = rep("solid", length(custom_labels)),
+          shape = c(rep(NA, length(custom_labels)))  # Adjust based on legend requirements
         )
       ),
       fill = guide_legend(ncol = 1)
     ) +
     ggtitle(titleName)
+  
+  return(p)
+}
+
+overlaidPlot <- function(df_model, df_observed, titleName = '', custom_colors, custom_labels){
+  p <- ggplot(df_model, aes(x = Date, y = value, color = model, fill = model)) +
+    geom_ribbon(aes(ymin = I_25, ymax = I_75), alpha = 0.3, linetype = 0) +
+    geom_line(lwd = 1.1) +
+    geom_line(data = df_observed, aes(x = Date, y = value), lwd = 0.9) +
+    geom_point(data = df_observed, aes(x = Date, y = value), size = 2) +
+    facet_wrap(~variable, scales = 'free') +
+    theme_bw() +
+    xlab('Date') +
+    ylab('Infected') +
+    scale_color_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
+    scale_fill_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
+    theme(legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10),
+          axis.title.x = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          strip.text = element_text(size = 12)) +
+    theme(legend.position = 'bottom') +
+    guides(color = guide_legend(ncol = 1),
+                                override.aes = list(linetype = c(rep('solid', length(custom_labels))))
+           , fill = guide_legend(ncol = 1)) +
+    ggtitle(titleName)
+  
+  return(p)
+  
+}
+
+create_comparison_plot <- function(df, custom_colors, custom_labels, titleName = '', plotType = 1) {
+  df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_25', 'I_75')] <- lapply(df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_25', 'I_75')], function(x) x * rho_humans)
+  df[df$model != 'Observed' & df$variable == 'Infected monkeys', c('value', 'I_25', 'I_75')] <- lapply(df[df$model != 'Observed' & df$variable == 'Infected monkeys', c('value', 'I_25', 'I_75')], function(x) x * rho_monkeys)
+  
+  # Separate the observed data
+  df_observed <- df[df$model == 'Observed', ]
+  df_model <- df[df$model != 'Observed', ]
+  
+  # Create a grid of all combinations of `model` and `variable`
+  facet_combinations <- expand.grid(
+    model = unique(df_model$model),
+    variable = unique(df_model$variable)
+  )
+  
+  # Replicate df_observed for each combination
+  df_observed_expanded <- merge(df_observed, facet_combinations, by = 'variable')
+  
+  # plot
+  if(plotType == 1){
+    p <- panelPlot(df_model = df_model, df_observed_expanded = df_observed_expanded, custom_colors = custom_colors, custom_labels = custom_labels)
+  } else {
+    p <- overlaidPlot(df_model = df_model, df_observed = df_observed, custom_colors = custom_colors, custom_labels = custom_labels)
+  }
   
   return(p)
 }
@@ -220,32 +257,6 @@ mod_comp_labels <- c('base_model' = 'Seasonal primate movement & seasonal biting
 model_comparison_plot <- create_comparison_plot(df = mod_compare, custom_colors = mod_comp_colors, custom_labels = mod_comp_labels) + xlim(start_date, end_date - 180)
 ggsave(filename = '../Figures/Model_comparison_plot.pdf', plot = model_comparison_plot, width = 7, height = 8.5)
 
-
-test <- subset(df_model, model == 'base_model')
-ggplot(df_model, aes(x = Date, y = value, color = model, fill = model)) +
-  geom_ribbon(aes(ymin = I_25, ymax = I_75), alpha = 0.3, linetype = 0) +
-  geom_line(lwd = 1.1) +
-  geom_line(data = df_observed, aes(x = Date, y = value), lwd = 0.9) +
-  geom_point(data = df_observed, aes(x = Date, y = value), size = 2) +
-  facet_grid(model~variable) +
-  theme_bw() +
-  xlab('Date') +
-  ylab('Infected') +
-  scale_color_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
-  scale_fill_manual(values = custom_colors, labels = custom_labels, name = 'Model', breaks = names(custom_labels)) +
-  theme(legend.title = element_text(size = 12),
-        legend.text = element_text(size = 10),
-        axis.title.x = element_text(size = 14),
-        axis.title.y = element_text(size = 14),
-        strip.text = element_text(size = 12)) +
-  theme(legend.position = 'bottom') +
-  guides(color = guide_legend(ncol = 1
-        , override.aes = list(linetype = c(rep("solid", length(custom_labels)-1)
-        , "solid")
-        , shape = c(rep(NA, length(custom_labels)-1), 16)))
-        , fill = guide_legend(ncol = 1))
-
-
 # Compare YFV primate mortality rates
 mu_compare <- do.call(rbind, list(base_model, low_mu_v1, high_mu_v1))
 mu_compare <- mu_compare[!duplicated(mu_compare), ]
@@ -259,6 +270,7 @@ mu_comparison_plot <- create_comparison_plot(
   , custom_colors = mu_colors
   , custom_labels = mu_labels
   , titleName = 'YFV monkey mortality rate'
+  , plotType = 2
   ) + 
   theme(legend.position = c(0.16, 0.6)
         , legend.background=element_blank()) +  
@@ -278,6 +290,7 @@ p_comparison_plot <- create_comparison_plot(
   , custom_colors = p_colors
   , custom_labels = p_labels
   , titleName = 'Proportion Hm mosquitoes biting NHP vs humans'
+  , plotType = 2
   ) + 
   theme(legend.position = c(0.16, 0.6)
         , legend.background=element_blank()
@@ -298,6 +311,7 @@ move_comparison_plot <- create_comparison_plot(
   , custom_colors = move_colors
   , custom_labels = move_labels
   , titleName = 'Movement rate of monkeys from forest to city (%/month)'
+  , plotType = 2
   ) + 
   theme(legend.position = c(0.16, 0.6)
         , legend.background=element_blank()
@@ -309,7 +323,6 @@ sensitivity_plot <- ggarrange(mu_comparison_plot, p_comparison_plot, move_compar
 ggsave(filename = '../Figures/Sensitivity_plot.pdf', sensitivity_plot, width = 12, height = 9)
 
 # Interventions 
-# add base_model
 int_compare <- do.call(rbind, list(base_model, reduce_mosquitoes, reduce_NHP_movement, shift_vax, combined_interventions))
 int_compare <- int_compare[!duplicated(int_compare), ]
 int_compare <- subset(int_compare, variable == 'Infected people')
@@ -337,12 +350,74 @@ int_comp_labels <- c('reduce_mosquitoes' = 'Vector control'
                      , 'base_model' = 'Base model'
                      , 'Observed' = 'Observed')
 
-intervention_comparison_plot_long <- create_comparison_plot(df = int_compare, custom_colors = int_comp_colors, custom_labels = int_comp_labels) + 
-  theme(legend.position = c(0.77, 0.65)
-        , legend.background=element_blank()
+int_compare_short <- subset(int_compare, Date <= '2018-07-01')
+intervention_comparison_plot_short <- create_comparison_plot(
+  df = int_compare_short
+  , custom_colors = int_comp_colors
+  , custom_labels = int_comp_labels
+  , plotType = 2
+) +   
+  facet_wrap(~variable, scales = 'free') +
+  theme(legend.position = 'inside'
+        , legend.position.inside = c(0.5, 0.65)
+           , legend.background=element_blank()
+           , strip.text = element_blank()
+) +
+  labs(title = 'Intervention comparison'
+       , subtitle = 'Short-term interventions'
+       , y = 'Human YFV cases'
+       , x = '') +
+  ylim(0,2200)
+
+
+intervention_comparison_plot_long <- create_comparison_plot(
+  df = int_compare
+  , custom_colors = int_comp_colors
+  , custom_labels = int_comp_labels
+  , plotType = 2
+  ) + 
+  theme(legend.position = 'none'
         , strip.text = element_blank()
         ) +
-  ggtitle('Intervention comparison') +
-  ylab('Human YFV cases')
+  labs(title = ''
+       , subtitle = 'Long-term interventions'
+       , y = ''
+  ) +
+  ylim(0,2200)
 
-ggsave(filename = '../Figures/Intervention_comparison_plot_long.pdf', plot = intervention_comparison_plot_long, width = 8.5, height = 3.5)
+# Intervention plot with higher R0 here
+int_compare_high_R0 <- do.call(rbind, list(base_model, reduce_mosquitoes_high_R0, reduce_NHP_movement_high_R0, shift_vax_high_R0, combined_interventions_high_R0))
+int_compare_high_R0 <- int_compare_high_R0[!duplicated(int_compare_high_R0), ]
+int_compare_high_R0 <- subset(int_compare_high_R0, variable == 'Infected people' & !is.na(value))
+int_compare_high_R0$model <- gsub('_high_R0', '', int_compare_high_R0$model)
+int_compare_high_R0$model <- factor(int_compare_high_R0$model, levels = c('Observed'
+                                                          , 'base_model'
+                                                          , 'reduce_NHP_movement'
+                                                          , 'reduce_mosquitoes'
+                                                          , 'shift_vax'
+                                                          , 'combined_interventions'
+                                                          ))
+df = int_compare_high_R0
+df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_25', 'I_75')] <- lapply(df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_25', 'I_75')], function(x) x * rho_humans)
+
+
+intervention_comparison_plot_high_R0 <- create_comparison_plot(
+  df = int_compare_high_R0
+  , custom_colors = int_comp_colors
+  , custom_labels = int_comp_labels
+  , plotType = 2
+) + 
+  theme(legend.position = 'none'
+        , strip.text = element_blank()
+  ) +
+  labs(title = ''
+       , subtitle = 'Long-term interventions, higher transmission rate'
+       , y = ''
+       , x = ''
+  ) +  ylim(0,2200)
+
+
+library(ggpubr)
+intervention_plots <- ggarrange(intervention_comparison_plot_short, intervention_comparison_plot_long, intervention_comparison_plot_high_R0, ncol = 3)
+
+ggsave(filename = '../Figures/Intervention_comparison_plot.pdf', plot = intervention_plots, width = 12.5, height = 3.5)

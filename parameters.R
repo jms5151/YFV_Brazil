@@ -183,6 +183,19 @@ int_params_vax$V <- vax_early
 int_params_combined <- int_params_vax
 int_params_combined$m <- move_new
 
+# interventions with higher R0
+yfv_params_long_Inc_R0 <- yfv_params_long
+yfv_params_long_Inc_R0[c('pMI1', 'pMI2', 'pMI3', 'pMI4')] <- lapply(yfv_params_long_Inc_R0[c('pMI1', 'pMI2', 'pMI3', 'pMI4')], function(x) x*2)
+
+int_params_reduce_nhp_movement_Inc_R0 <- int_params_reduce_nhp_movement
+int_params_reduce_nhp_movement_Inc_R0[c('pMI1', 'pMI2', 'pMI3', 'pMI4')] <- lapply(int_params_reduce_nhp_movement_Inc_R0[c('pMI1', 'pMI2', 'pMI3', 'pMI4')], function(x) x*2)
+  
+int_params_vax_Inc_R0 <- int_params_vax
+int_params_vax_Inc_R0[c('pMI1', 'pMI2', 'pMI3', 'pMI4')] <- lapply(int_params_vax_Inc_R0[c('pMI1', 'pMI2', 'pMI3', 'pMI4')], function(x) x*2)
+
+int_params_combined_Inc_R0 <- int_params_combined
+int_params_combined_Inc_R0[c('pMI1', 'pMI2', 'pMI3', 'pMI4')] <- lapply(int_params_combined_Inc_R0[c('pMI1', 'pMI2', 'pMI3', 'pMI4')], function(x) x*2)
+
 # create list of parameters lists
 yfv_params_list <- list(
   yfv_params
@@ -199,6 +212,10 @@ yfv_params_list <- list(
   , int_params_reduce_nhp_movement
   , int_params_vax
   , int_params_combined
+  , yfv_params_long_Inc_R0
+  , int_params_reduce_nhp_movement_Inc_R0
+  , int_params_vax_Inc_R0
+  , int_params_combined_Inc_R0
 )
 
 names(yfv_params_list) <- c(
@@ -216,12 +233,16 @@ names(yfv_params_list) <- c(
   , 'reduce_NHP_movement'
   , 'shift_vax'
   , 'combined_interventions'
+  , 'reduce_mosquitoes_high_R0'
+  , 'reduce_NHP_movement_high_R0'
+  , 'shift_vax_high_R0'
+  , 'combined_interventions_high_R0'
 )
 
 times_list_1 <- list(times)
 times_list_1 <- rep(times_list_1, 10)
 times_list_2 <- list(int_times)
-times_list_2 <- rep(times_list_2, 4)
+times_list_2 <- rep(times_list_2, 8)
 times_list <- c(times_list_1, times_list_2)
 
 quant50 <- unname(quantile(k_long, 0.5))
