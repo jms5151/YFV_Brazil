@@ -14,13 +14,13 @@ extract_evspsbl <- function(nc){
   time_converted <- time_origin + as.difftime(time, units = 'days')
   
   # Find the nearest indices for your specific lat/lon
-  target_lat <- 19.9191  # Replace with your desired latitude
-  target_lon <- 43.9387 # Replace with your desired longitude
+  target_lat <- 19.9191  
+  target_lon <- 43.9387 
   lat_idx <- which.min(abs(lat - target_lat))
   lon_idx <- which.min(abs(lon - target_lon))
   
   # Extract the variable for all times at the specific lat/lon
-  var_name <- 'evspsbl' # Replace with your variable name
+  var_name <- 'evspsbl' 
   data_subset <- ncvar_get(nc, var_name, 
                            start = c(lon_idx, lat_idx, 1), 
                            count = c(1, 1, -1))
