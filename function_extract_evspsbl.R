@@ -1,5 +1,5 @@
 # function to extract evspsbl data from a netcdf file
-extract_evspsbl <- function(nc){
+extract_climvar <- function(nc, var_name){
   # Extract latitude, longitude, and time variables
   lat <- ncvar_get(nc, 'lat')
   lon <- ncvar_get(nc, 'lon')
@@ -20,7 +20,6 @@ extract_evspsbl <- function(nc){
   lon_idx <- which.min(abs(lon - target_lon))
   
   # Extract the variable for all times at the specific lat/lon
-  var_name <- 'evspsbl' 
   data_subset <- ncvar_get(nc, var_name, 
                            start = c(lon_idx, lat_idx, 1), 
                            count = c(1, 1, -1))
