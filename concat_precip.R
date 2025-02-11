@@ -1,117 +1,117 @@
+# Load required libraries
 library(ncdf4)
 library(tidyverse)
 library(fitdistrplus)
+library(ggpubr)
 
-# source functions to extract evspsbl data from a netcdf file, calculate return period
+# Source custom functions
 source('function_extract_evspsbl.R')
 source('function_calculate_return_period.R')
 
-# format SPEI data from Brazil
-spei_df <- read.csv('../SPEI.csv')
-spei_df <- subset(spei_df, !is.na(SPEI.8))
+# Load and clean SPEI data
+spei_df <- read.csv('../SPEI.csv') %>%
+  filter(!is.na(SPEI.8))
 
-# calculate return period for SPEI data
-x_100 <- return_period(values = spei_df$SPEI.8, return_period = 100)
+# Calculate return period for SPEI data
+x_150 <- return_period(values = spei_df$SPEI.8, return_period = 150)
 
-# format climate model data
-
-# list netcdf file
-nc_files <- list.files('../climate_data/', full.names = TRUE, pattern = '.nc$')
-
-# create empty data frame to store results
-df <- data.frame()
-
-# loop through all netcdf files
-for(i in 1:length(nc_files)){
+# Function to process NetCDF files
+process_nc_file <- function(file) {
+  variable_name <- ifelse(grepl('ET', file), 'evspsbl', 'pr')
+  nc_data <- nc_open(file)
+  results <- extract_climvar(nc = nc_data, var_name = variable_name)
+  nc_close(nc_data)
   
-  if(grepl('ET', nc_files[i])){
-    variable_name <- 'evspsbl'
-  } else {
-    variable_name <- 'pr'
-  }
-  
-  # Open the NetCDF file
-  nc_temp <- nc_open(nc_files[i])
-  
-  # Inspect the file structure
-  # print(nc_temp)
-  
-  # get data
-  results <- extract_climvar(nc = nc_temp, var_name = variable_name)
-  
-  # Close the NetCDF file
-  nc_close(nc_temp)
-  
-  # add model attributes
-  results$model <- gsub('../climate_data/|ET_|precip_|ssp245_|historical_|_1850_2014|_2015_2100|.nc', '', nc_files[i])
-  results$variable <- variable_name  
-
-  # combine data
-  df <- rbind(df, results) 
+  results %>%
+    mutate(
+      model = gsub('../climate_data/|ET_|precip_|ssp245_|historical_|_1850_2014|_2015_2100|.nc', '', file),
+      variable = variable_name
+    )
 }
 
+# Process climate model data
+nc_files <- list.files('../climate_data/', full.names = TRUE, pattern = '.nc$')
+df <- map_dfr(nc_files, process_nc_file)
+
+# Summarize climate model data
 df_summary <- df %>%
-  spread(variable, value) %>%
-  mutate(diff = pr - evspsbl) %>%
+  pivot_wider(names_from = variable, values_from = value) %>%
+  mutate(diff = evspsbl - pr) %>%
   group_by(time) %>%
-  summarize(diff = mean(diff, na.rm = TRUE))
+  summarise(diff50 = mean(diff) * 86400, diffsd = sd(diff) * 86400, .groups = 'drop') %>%
+  mutate(
+    time_period = case_when(
+      time >= '2070-12-01' ~ 'Future (2070-2100)',
+      time > '1970-10-01' & time <= '2000-01-01' ~ 'Historical (1970-2000)',
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(time_period))
 
-# calculate return period for current and future periods
-historical <- df_summary$diff[df_summary$time > '1970-10-01' & df_summary$time <= '2000-01-01']
-rp_100_historical <- return_period(values = historical, return_period = 100)
+# Compute 1 - CDF
+cdf_data <- df_summary %>%
+  arrange(diff50) %>%
+  group_by(time_period) %>%
+  mutate(cdf = ecdf(diff50)(diff50), survival = 1 - cdf) %>%
+  ungroup()
 
-future <- df_summary$diff[df_summary$time >= '2070-12-01']
-rp_100_future <- return_period(values = future, return_period = 100)
+# Define custom theme
+custom_theme <- theme_bw() +
+  theme(
+    legend.position = c(0.18, 0.6),
+    legend.background = element_rect(fill = 'white', color = 'black'),
+    legend.title = element_text(size = 10, face = 'bold'),
+    legend.text = element_text(size = 9)
+  )
 
-# Plot the histograms
+# Define colors
+alphaPink <- adjustcolor('#ab0e4a', alpha.f = 0.6)
+alphaGreen <- adjustcolor('#5a940a', alpha.f = 0.8)
+alphaOrange <- adjustcolor('orange4', alpha.f = 0.8)
 
-# plot SPEI data
-alphaPink = adjustcolor('#ab0e4a', alpha.f = 0.6)
-alphaGreen = adjustcolor('#5a940a', alpha.f = 0.8)
-alphaOrange = adjustcolor('orange4', alpha.f = 0.8)
+# CDF Plot
+century_return <- 1/1200
+cdf_plot <- ggplot(cdf_data, aes(x = diff50, y = pmax(survival, 3e-4), color = time_period)) +
+  geom_step(size = 1.5) +
+  geom_hline(yintercept = century_return, linetype = 'dashed', color = 'black', lwd = 1.2) +
+  scale_y_log10(breaks = c(1, 0.1, 0.01, 0.001), labels = scales::comma_format(accuracy = 0.001), limits = c(3e-4, 1)) +
+  scale_color_manual(values = c('Historical (1970-2000)' = alphaOrange, 'Future (2070-2100)' = alphaGreen)) +
+  labs(title = 'Global Change Increases Dry Conditions', x = 'Evapotranspiration - Precipitation (mm/day)', y = '1 - Cumulative Probability (log scale)', color = 'Time Period') +
+  custom_theme +
+  theme(legend.background = element_rect(color = NA)) +
+  xlim(-0.3, 0.27)
 
-pdf('../figures/drought_histograms.pdf', width = 6, height = 8)
-layout(matrix(c(1, 2, 3), nrow = 3, byrow = TRUE), heights = c(4, 4, 1))  # 3 rows, 1 column
+# SPEI Histogram
+peak_drought_b4_outbreak <- spei_df$SPEI.8[spei_df$Date == '2016-09-01']
+spei_plot <- ggplot(spei_df, aes(x = SPEI.8 * -1)) +
+  geom_histogram(bins = 50, fill = alphaPink, color = 'black') +
+  geom_vline(aes(xintercept = x_150 * -1), color = '#ab0e4a', linewidth = 1.5) +
+  geom_vline(aes(xintercept = peak_drought_b4_outbreak * -1), color = 'black', linewidth = 1.5) +
+  labs(title = 'Extreme Drought in Minas Gerais, Brazil', x = 'Inverse Standardized Precipitation - Evapotranspiration Index (SPEI)', y = 'Frequency') +
+  scale_x_continuous(limits = c(-3, 3)) +
+  scale_y_continuous(limits = c(0, 13)) +
+  # Custom Legend
+  guides(fill = guide_legend(override.aes = list(fill = alphaPink, shape = 22, size = 2)),
+         color = guide_legend(override.aes = list(linetype = c(1, 1), size = c(1.5, 1.5)))) +
+  # Manual Legend using Dummy Data
+  annotate('segment', x = -3, xend = -2.5, y = 12, yend = 12, color = '#ab0e4a', size = 1.5) +
+  annotate('text', x = -2.4, y = 12, label = 'Once in a Century Drought', hjust = 0) +
+  annotate('segment', x = -3, xend = -2.5, y = 11, yend = 11, color = 'black', size = 1.5) +
+  annotate('text', x = -2.4, y = 11, label = 'Peak Drought Prior to Outbreak', hjust = 0) +
+  annotate('rect', xmin = -3, xmax = -2.5, ymin = 9.5, ymax = 10, fill = alphaPink, color = 'black') +
+  annotate('text', x = -2.4, y = 9.75, label = 'SPEI (2007-2020)', hjust = 0) +
+  custom_theme
 
-hist((spei_df$SPEI.8), breaks = 50, col = alphaPink, main = 'Extreme drought in Minas Gerais, Brazil', xlab = 'Standardized Precipitation-Evapotranspiration Index (SPEI)', xlim = c(-3, 3), ylim = c(0, 13))
-abline(v = x_100, col = '#ab0e4a', lwd = 4)
-peak_drought_b4_outbreak <- (spei_df$SPEI.8[spei_df$Date == '2016-09-01'])
-abline(v = peak_drought_b4_outbreak, lwd = 4)
-legend(
-  'topright', 
-  legend = c('SPEI (2007-2020)', 'Once in a century drought', 'Peak drought prior to outbreak'),
-  pch = c(22, NA, NA),  # Square symbols for first two, no symbol for lines
-  pt.bg = c(alphaPink, NA, NA),  # Background fill colors for squares
-  pt.cex = 2,  # Increase box size
-  lty = c(NA, 1, 1),  # First two have no lines, last two have lines
-  lwd = c(NA, 4, 4),  # Width of the lines
-  col = c('black', '#ab0e4a', 'black'),  # Colors for the lines
-  bty = 'n'
-)
+# Combine and save plots
+drought_plots <- ggarrange(spei_plot, cdf_plot, ncol = 1, nrow = 2)
+ggsave('../Figures/drought_plots.pdf', plot = drought_plots, width = 6, height = 8)
 
-# plot modeled climate data
-hist(df_summary$diff[df_summary$time >= '2070-12-01'], breaks = 40, col = alphaGreen, main = 'Global change increases dry conditions', xlab = 'Net precipitation (precipitation - evapotranspiration)')
-hist(df_summary$diff[df_summary$time > '1970-10-01' & df_summary$time <= '2000-01-01'], breaks = 25, col = alphaOrange, add = T)
-abline(v = rp_100_historical, col = 'orange4', lwd = 4)
-abline(v = rp_100_future, col = '#5a940a', lwd = 4)
-legend(
-  'topright', 
-  legend = c('Historical net precipitation (1970-2000)', 'Future net precipitation (2070-2100)', 
-             'Historical 100-yr return period', 'Future 100-yr return period'),
-  pch = c(22, 22, NA, NA),  # Square symbols for first two, no symbol for lines
-  pt.bg = c(alphaOrange, alphaGreen, NA, NA),  # Background fill colors for squares
-  pt.cex = 2,  # Increase box size
-  lty = c(NA, NA, 1, 1),  # First two have no lines, last two have lines
-  lwd = c(NA, NA, 4, 4),  # Width of the lines
-  col = c('black', 'black', 'orange4', '#5a940a'),  # Colors for the lines
-  bty = 'n'
-)
+# Calculate differences in extremes
+spei_ratio <- peak_drought_b4_outbreak / x_150
 
-# Add directional arrow
-par(mar = c(0, 4, 0, 2))  # Remove margins for the arrow plot
-plot(1, type = 'n', axes = FALSE, xlab = '', ylab = '', xlim = c(-3, 3), ylim = c(0, 1))
-arrows(x0 = -2.8, y0 = 0.5, x1 = 2.8, y1 = 0.5, length = 0.1, col = 'black', code = 3)
-text(-2.8, 0.3, 'Drier', col = "black", pos = 4)
-text(2.8, 0.3, 'Wetter', col = "black", pos = 2)
+# Climate model extremes
+closest_diff50_by_period <- cdf_data %>%
+  group_by(time_period) %>%
+  summarise(closest_diff50 = diff50[which.min(abs(survival - century_return))], .groups = 'drop')
 
-dev.off()
+climate_ratio <- closest_diff50_by_period$closest_diff50[1] / closest_diff50_by_period$closest_diff50[2]
