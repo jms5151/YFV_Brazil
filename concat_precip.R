@@ -70,11 +70,11 @@ alphaGreen <- adjustcolor('#5a940a', alpha.f = 0.8)
 alphaOrange <- adjustcolor('orange4', alpha.f = 0.8)
 
 # CDF Plot
-century_return <- 1/1200
-cdf_plot <- ggplot(cdf_data, aes(x = diff50, y = pmax(survival, 3e-4), color = time_period)) +
+cum_prob_threshold <- 0.01
+cdf_plot <- ggplot(cdf_data, aes(x = diff50, y = pmax(survival, 1e-3), color = time_period)) +
   geom_step(size = 1.5) +
-  geom_hline(yintercept = century_return, linetype = 'dashed', color = 'black', lwd = 1.2) +
-  scale_y_log10(breaks = c(1, 0.1, 0.01, 0.001), labels = scales::comma_format(accuracy = 0.001), limits = c(3e-4, 1)) +
+  geom_hline(yintercept = 0.01, linetype = 'dashed', color = 'black', lwd = 1) +
+  scale_y_log10(breaks = c(1, 0.1, 0.01, 0.001), labels = scales::comma_format(accuracy = 0.001), limits = c(1e-3, 1)) +
   scale_color_manual(values = c('Historical (1970-2000)' = alphaOrange, 'Future (2070-2100)' = alphaGreen)) +
   labs(title = 'Global Change Increases Dry Conditions', x = 'Evapotranspiration - Precipitation (mm/day)', y = '1 - Cumulative Probability (log scale)', color = 'Time Period') +
   custom_theme +
@@ -112,6 +112,6 @@ spei_ratio <- peak_drought_b4_outbreak / x_150
 # Climate model extremes
 closest_diff50_by_period <- cdf_data %>%
   group_by(time_period) %>%
-  summarise(closest_diff50 = diff50[which.min(abs(survival - century_return))], .groups = 'drop')
+  summarise(closest_diff50 = diff50[which.min(abs(survival - cum_prob_threshold))], .groups = 'drop')
 
 climate_ratio <- closest_diff50_by_period$closest_diff50[1] / closest_diff50_by_period$closest_diff50[2]
