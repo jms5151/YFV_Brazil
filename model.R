@@ -1,43 +1,76 @@
-# update time varying functions
 yfv_model <- function(t, state, parameters) {
-  with(as.list(c(state,parameters)), {
-    # browser() # can use in if t > x
+  with(as.list(c(state, parameters)), {
+    
+    # Time-varying parameters
+    alpha_val <- if (is.function(alpha)) alpha(t) else alpha
+    V_val     <- if (is.function(V)) V(t) else V
+    K_val     <- if (is.function(K)) K(t) else K
+    birth_hg_val <- if (is.function(birth_hg)) birth_hg(t) else birth_hg
+    birth_aa_val <- if (is.function(birth_aa)) birth_aa(t) else birth_aa
+    monkey_seed_val <- if (is.function(monkey_seed)) monkey_seed(t) else monkey_seed
+    marmoset_seed_val <- if (is.function(marmoset_seed)) marmoset_seed(t) else marmoset_seed
+    hg_seed_val <- if (is.function(hg_seed)) hg_seed(t) else hg_seed
+    
+    # Prevent mosquito collapse
+    Shg <- pmax(Shg, 1)
+    Saa <- pmax(Saa, 1)
+    
+    # Total population sizes
+    Np  <- Sp + Ip + Rp
+    Nc  <- Sc + Ic + Rc
+    Nh  <- Sh + Eh + Ih + Rh
+    Nhg <- Shg + Ehg + Ihg
+    Naa <- Saa + Eaa + Iaa
+    
+    # Force of infection (lambda)
+    lambda_hg <- alpha_val * (
+      pMI1 * Ip / Np +
+        pMI2 * Ih / Nh +
+        pMI4 * Ic / Nc
+    )
+    
+    lambda_h <- alpha_val * (
+      b * Ihg / Nh + Iaa / Nh
+    )
+    
+    lambda_aa <- alpha_val * pMI3 * Ih / Nh
+    
     # Howler monkeys
-    dS_p <- -(a1(t) * sigma * p * b * (I_hm / (S_p + I_p + R_p)) * S_p) + (mu_p * (I_p + R_p)) + (m(t) * R_p)
-    dI_p <- (a1(t) * sigma * p * b * (I_hm / (S_p + I_p + R_p)) * S_p) - (gamma_p * I_p) - (mu_p * I_p) - (I_p * mu_v1)
-    dR_p <- ((gamma_p * I_p) * (1-mu_v1)) - (mu_p * R_p) - (m(t) * R_p)
-
+    dSp <- -alpha_val * b * Ihg / Np * Sp + mu_p * (Np - Sp) + monkey_seed_val
+    dIp <-  alpha_val * b * Ihg / Np * Sp - gamma_p * Ip - mu_p * Ip - mu_v1 * Ip
+    dRp <-  gamma_p * Ip - mu_p * Rp
+    
     # Marmosets
-    dS_c <- -(a1(t) * sigma * p * b * (I_hm / (S_c + I_c + R_c)) * S_c) + (mu_c * (I_c + R_c))
-    dI_c <- (a1(t) * sigma * p * b * (I_hm / (S_c + I_c + R_c)) * S_c) - (gamma_c * I_c) - (mu_c * I_c)
-    dR_c <- ((gamma_c * I_c) * (1-mu_v3)) - (mu_c * R_c)
-
+    dSc <- -alpha_val * b * Ihg / Nc * Sc + mu_c * (Nc - Sc) + marmoset_seed_val
+    dIc <-  alpha_val * b * Ihg / Nc * Sc - gamma_c * Ic - mu_c * Ic - mu_v3 * Ic
+    dRc <-  gamma_c * Ic - mu_c * Rc
+    
     # Humans
-    dS_h <- -((a2(t) * (1-p) * b * (I_hm / (S_h + E_h + I_h + R_h))) * S_h) - ((a1(t) * b * (I_aa / (S_h + E_h + I_h + R_h))) * S_h) - (V(t) * S_h) + (mu_h * (E_h + I_h + R_h)) #+ (w * R_h)
-    dE_h <- ((a2(t) * (1-p) * b * (I_hm / (S_h + E_h + I_h + R_h))) * S_h)  + ((a1(t) * b * (I_aa / (S_h + E_h + I_h + R_h))) * S_h) - (delta_h * E_h) - (mu_h * E_h) - (V(t) * E_h)
-    dI_h <- (delta_h * E_h) - (gamma_h * I_h) - (mu_h * I_h) - (V(t) * I_h)
-    dR_h <- ((gamma_h * I_h) * (1-mu_v2)) - (mu_h * R_h) + (V(t) * (S_h + E_h + I_h + R_h))
-
+    dSh <- -lambda_h * Sh + mu_h * (Nh - Sh) - V_val * Sh
+    dEh <-  lambda_h * Sh - delta_h * Eh - mu_h * Eh - V_val * Eh
+    dIh <-  delta_h * Eh - gamma_h * Ih - mu_h * Ih - mu_v2 * Ih - V_val * Ih
+    dRh <-  gamma_h * Ih - mu_h * Rh + V_val * (Sh + Eh + Ih)
+    
     # Haemagogus mosquitoes
-    dS_hm <- -((a1(t) * sigma * p * pMI1 * (I_p / (S_p + I_p + R_p))) +
-                 (a2(t) * (1-p) * pMI2 * (I_h / (S_h + E_h + I_h + R_h))) +
-                 (a1(t) * sigma * p * pMI4 * (I_c/(S_c + I_c + R_c)))) * S_hm - (mu_hm * S_hm) + max(0, min(br1(t) * (S_hm + E_hm + I_hm), ((1 - ((S_hm + E_hm + I_hm)/K(t))) * (S_hm + E_hm + I_hm))))
-    dE_hm <- ((a1(t) * sigma * p * pMI1 * (I_p / (S_p + I_p + R_p))) +
-                (a2(t) * (1-p) * pMI2 * (I_h / (S_h + E_h + I_h + R_h))) +
-                (a1(t) * sigma * p * pMI4 * (I_c/(S_c + I_c + R_c)))) * S_hm - ((PDR_hm + mu_hm) * E_hm)
-    dI_hm <- (PDR_hm * E_hm) - (mu_hm * I_hm)
-
-    # Aedes aegypti mosquitoes
-    dS_aa <- -((a1(t) * pMI3 * (I_h / (S_h + E_h + I_h + R_h))) * S_aa) - (mu_aa * S_aa) + max(0, min(br2(t) * (S_aa + E_aa + I_aa), ((1 - ((S_aa + E_aa + I_aa)/K(t))) * (S_aa + E_aa + I_aa))))
-    dE_aa <- ((a1(t) * pMI3 * (I_h / (S_h + E_h + I_h + R_h))) * S_aa) - ((PDR_aa + mu_aa) * E_aa)
-    dI_aa <- (PDR_aa * E_aa) - (mu_aa * I_aa)
-
-    list(c(dS_p, dI_p, dR_p, dS_c, dI_c, dR_c, dS_h, dE_h, dI_h, dR_h, dS_hm, dE_hm, dI_hm, dS_aa, dE_aa, dI_aa), 'a1' = (a1(t)), 'a2' = (a2(t))) 
+    dShg <- -lambda_hg * Shg + birth_hg_val * (Nhg - Shg) * (1 - Nhg / K_val) + hg_seed_val
+    dEhg <-  lambda_hg * Shg - (PDR_hg + mu_hg) * Ehg
+    dIhg <-  PDR_hg * Ehg - mu_hg * Ihg
+    
+    # Aedes mosquitoes
+    dSaa <- -lambda_aa * Saa + birth_aa_val * (Naa - Saa) * (1 - Naa / K_val)
+    dEaa <-  lambda_aa * Saa - (PDR_aa + mu_aa) * Eaa
+    dIaa <-  PDR_aa * Eaa - mu_aa * Iaa
+    
+    list(c(dSp, dIp, dRp, dSc, dIc, dRc,
+           dSh, dEh, dIh, dRh,
+           dShg, dEhg, dIhg,
+           dSaa, dEaa, dIaa),
+         c(Np = Np, Nc = Nc, Nh = Nh, Nhg = Nhg, Naa = Naa))
   })
 }
 
 # Define an event function to halve only the Susceptible compartment at specific time points
 event_function <- function(t, state, parameters) {
-  state['S_aa'] <- min(state['S_aa'], quant50)
+  state['Saa'] <- min(state['Saa'], quant50)
   return(state)
 }
