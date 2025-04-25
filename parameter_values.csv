@@ -1,40 +1,28 @@
-variable,definition,value
-a,Mosquito biting rate (Haemagogus & Aedes),0.7
-sigma,Percentage of Haemogogus bites Howler monkeys (vs marmosets),0.5
-pMI1,Probability of Haemogogus infection given a bite on infectious primate,0.2
-pMI2,Probability of Haemogogus infection given a bite on infectious human,0.25
-pMI3,Probability of Aedes infection given a bite on infectious human,0.25
-pMI4,Probability of Haemogogus infection given a bite on infectious marmoset,0.125
-b,Probability mosquito is infectious given infection,0.5
-PDR_hg,"YFV viral extrinsic incubation rate (i.e., development rate) in Haemogogus",0.08333333
-PDR_aa,"YFV viral extrinsic incubation rate (i.e., development rate) in Aedes",0.07692308
-mu_hg,Haemogogus birth/mortality rate,0.05
-mu_aa,Aedes birth/mortality rate,0.05
-mu_p,Primate birth/mortality rate,0.000156556
-mu_h,Human birth/mortality rate,3.70E-05
-mu_c,Marmoset birth/death rate,0.000456621
-mu_v1,Mortality rate of primates infected with YFV,0.5
-mu_v2,Mortality rate of humans infected with YFV,0.02
-mu_v3,Mortality rate of marmosets infected with YFV,0.01
-gamma_p,Primate recovery rate (1/infectious period),0.166667
-gamma_h,Human recovery rate (1/infectious period),0.2857143
-gamma_c,Marmoset recovery rate,0.25
-delta_h,Human intrinsic incubation period,0.23
-initial_v,Percent of population vaccinated at start of epidemic,0.5
-final_v,Percent of population vaccinated at end of epidemic,0.9
-p,Probability hg biting a NHP (vs a human),0.7
-mu_aa_low,Aedes birth/mortality rate (low),0.028571429
-mu_aa_high,Aedes birth/mortality rate (high),0.1
-mu_hg_low,Haemogogus birth/mortality rate (low),0.037037037
-mu_hg_high,Haemogogus birth/mortality rate (high),0.142857143
-a_low,Mosquito biting rate (low),0.33
-a_high,Mosquito biting rate (high),1
-mu_v1_low,Mortality rate of primates infected with YFV (low),0.2
-mu_v1_high,Mortality rate of primates infected with YFV (high),0.8
-p_low,Probability hg biting a NHP (vs a human) (low),0.3
-p_mod,Probability hg biting a NHP (vs a human) (moderate),0.5
-m,Movement of Howler monkeys from the forest to the city ,0.5
-m_mod,Movement of Howler monkeys from the forest to the city (moderate),2
-m_high,Movement of Howler monkeys from the forest to the city (high),10
-K_dry,Carrying capacity (low),300000
-K_wet,Carrying capacity (high),1800000
+variable,definition,value,low_value,high_value
+a,Mosquito biting rate (Haemagogus & Aedes),0.7,0.33,1
+pMI1,Probability of Haemogogus infection given a bite on infectious primate,0.2,,1
+pMI2,Probability of Haemogogus infection given a bite on infectious human,0.25,,0.5
+pMI3,Probability of Aedes infection given a bite on infectious human,0.25,,0.5
+pMI4,Probability of Haemogogus infection given a bite on infectious marmoset,0.125,,0.25
+b,Probability mosquito is infectious given infection,0.5,,
+PDR_hg,"YFV viral extrinsic incubation rate (i.e., development rate) in Haemogogus",0.08333333,,
+PDR_aa,"YFV viral extrinsic incubation rate (i.e., development rate) in Aedes",0.07692308,,
+mu_hg,Haemogogus birth/mortality rate,0.05,0.037037037,0.142857143
+mu_aa,Aedes birth/mortality rate,0.05,0.028571429,0.1
+mu_p,Primate birth/mortality rate,0.000156556,,
+mu_h,Human birth/mortality rate,3.70E-05,,
+mu_c,Marmoset birth/death rate,0.000456621,,
+mu_v1,Mortality rate of primates infected with YFV,0.5,0.2,0.8
+mu_v2,Mortality rate of humans infected with YFV,0.02,,
+mu_v3,Mortality rate of marmosets infected with YFV,0.01,,
+gamma_p,Primate recovery rate (1/infectious period),0.166667,,
+gamma_h,Human recovery rate (1/infectious period),0.2857143,,
+gamma_c,Marmoset recovery rate,0.25,,
+delta_h,Human intrinsic incubation period,0.23,,
+initial_v,Percent of population vaccinated at start of epidemic,0.5,,
+final_v,Percent of population vaccinated at end of epidemic,0.9,,
+p,Probability hg biting a NHP (vs a human),0.7,,
+K,Carrying capacity,,4.00E+05,7.00E+06
+monkey_seed,Movement of Howler monkeys from the forest to the city ,50,5,100
+marmoset_seed,Movement of marmosets from the forest to the city ,75,10,150
+mosquito_seed,Movement of Haemogogus mosquitos from the forest to the city,10,1,100
