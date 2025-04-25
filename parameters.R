@@ -189,7 +189,33 @@ yfv_params_interventions <- adjust_params(yfv_params_interventions, intervention
 # Reduce mosquitoes
 # right now, implemented as instantaneous reduction of 50% when threshold reached
 # Maybe instead it should be gradual reductions during rainy season?
-## PAUSED HERE, but finished early_vax below
+
+
+# Set a threshold (you can adjust slightly based on signal sharpness)
+threshold <- quantile(br_aa_long, 0.9)  
+
+# Identify times when rainy season starts
+rainy_start_days <- which(diff(br_aa_long > threshold) == 1)
+
+# Now map rainy seasons
+rainy_windows <- lapply(rainy_start_days, function(day) {
+  list(
+    start_day = day,
+    end_day = day + 30  # Say, intervention lasts 30 days
+  )
+})
+
+## PAUSED HERE, need to evaluate this event function, finished early_vax below
+event_function_reduce_mosquitoes <- function(t, state, parameters) {
+  for (window in rainy_windows) {
+    if (t >= window$start_day && t <= window$end_day) {
+      # apply cosine smoothing reduction just like we discussed!
+    }
+  }
+  return(state)
+}
+
+
 vector_control <- yfv_params_interventions
 quant50 <- unname(quantile(k_long, 0.5))
 vector_control$quant50 <- quant50
