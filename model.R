@@ -69,8 +69,27 @@ yfv_model <- function(t, state, parameters) {
   })
 }
 
-# Define an event function to halve only the Susceptible compartment at specific time points
-event_function <- function(t, state, parameters) {
-  state['Saa'] <- min(state['Saa'], quant50)
+# Define an event function for vector control during rainy season
+# event_function <- function(t, state, parameters) {
+#   state['Saa'] <- min(state['Saa'], quant50)
+#   return(state)
+# }
+
+event_function_reduce_mosquitoes <- function(t, state, parameters) {
+  for (window in rainy_windows) {
+    if (t >= window$start_day && t <= window$end_day) {
+      
+      # apply cosine smoothing reduction just like we discussed!
+      fraction <- (t - start_day) / (end_day - start_day)
+      smooth_ramp <- 0.5 * (1 - cos(pi * fraction))  # 0 → 1 smoothly over window
+      
+      final_reduction <- 0.5  # Target 50% final reduction
+      daily_multiplier <- 1 - (1 - final_reduction) * smooth_ramp
+      
+      # Apply the gradual decrease
+      state['Saa'] <- state['Saa'] * daily_multiplier
+    }
+  }
   return(state)
 }
+

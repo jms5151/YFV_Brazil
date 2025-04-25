@@ -205,20 +205,7 @@ rainy_windows <- lapply(rainy_start_days, function(day) {
   )
 })
 
-## PAUSED HERE, need to evaluate this event function, finished early_vax below
-event_function_reduce_mosquitoes <- function(t, state, parameters) {
-  for (window in rainy_windows) {
-    if (t >= window$start_day && t <= window$end_day) {
-      # apply cosine smoothing reduction just like we discussed!
-    }
-  }
-  return(state)
-}
-
-
 vector_control <- yfv_params_interventions
-quant50 <- unname(quantile(k_long, 0.5))
-vector_control$quant50 <- quant50
 
 # early vaccination
 # Define intervention date and ID
@@ -232,115 +219,96 @@ vax_early <- approxfun(int_times, vax_early)
 early_vax <- yfv_params_interventions
 early_vax$V <- vax_early
 
-# Define modified movement and vaccination schedules
-# move_new <- c(movement_long[1:(intervention_date_id - 1)], movement_long[intervention_date_id:length(movement_long)] / 4)
-# move_new <- approxfun(int_times, move_new)
+# limit movement of howler monkeys
+limit_monkey_movement <- yfv_params_interventions
+limit_monkey_movement$monkey_seed <- monkey_seed_low
 
+# combine interventions
+interventions_combined <- early_vax
+interventions_combined$monkey_seed <- monkey_seed_low
 
-# Define parameter variants
-# int_params_reduce_nhp_movement <- yfv_params_long
-# int_params_reduce_nhp_movement$m <- move_new
-
-
-int_params_combined <- int_params_vax
-# int_params_combined$m <- move_new
-
-# Increased R0 scenarios
+# Interventions - increased R0 ----------------------------------
 scale_R0 <- function(params) {
   params[c('pMI1', 'pMI2', 'pMI3', 'pMI4')] <- lapply(
     params[c('pMI1', 'pMI2', 'pMI3', 'pMI4')], function(x) x * 2)
   return(params)
 }
 
-yfv_params_long_Inc_R0 <- scale_R0(yfv_params_long)
-# int_params_reduce_nhp_movement_Inc_R0 <- scale_R0(int_params_reduce_nhp_movement)
-int_params_vax_Inc_R0 <- scale_R0(int_params_vax)
-int_params_combined_Inc_R0 <- scale_R0(int_params_combined)
-
-
-
+vector_control_Inc_R0 <- scale_R0(vector_control)
+early_vax_Inc_R0 <- scale_R0(early_vax)
+limit_monkey_movement_Inc_R0 <- scale_R0(limit_monkey_movement)
+combined_interventions_Inc_R0 <- scale_R0(interventions_combined)
 
 # Create list of parameter sets
 yfv_params_list <- list(
   # Model comparison
-  yfv_params,
-  constant_alpha,
-  no_movement,
-  constant_alpha_and_movement,
+  yfv_params
+  , constant_alpha
+  , no_movement
+  , constant_alpha_and_movement
   # Sensitivity analysis
-  low_mu_v1,
-  high_mu_v1,
-  high_pMI,
-  low_move,
-  high_move,
+  , low_mu_v1
+  , high_mu_v1
+  , high_pMI
+  , low_move
+  , high_move
   # Interventions
-  vector_control,
-  early_vax,
-  # int_params_reduce_nhp_movement,
-  int_params_vax,
-  int_params_combined,
-  yfv_params_long_Inc_R0,
-  # int_params_reduce_nhp_movement_Inc_R0,
-  int_params_vax_Inc_R0,
-  int_params_combined_Inc_R0
-)
+  , vector_control
+  , early_vax
+  , limit_monkey_movement
+  , interventions_combined
+  # Interventions - increased R0
+  , vector_control_Inc_R0
+  , early_vax_Inc_R0
+  , limit_monkey_movement_Inc_R0
+  , combined_interventions_Inc_R0
+  )
 
 names(yfv_params_list) <- c(
   # Model comparison
-  'full_model',
-  'constant_bite_rate',
-  'no_movement',
-  'constant_bite_rate_and_movement',
+  'full_model'
+  , 'constant_bite_rate'
+  , 'no_movement'
+  , 'constant_bite_rate_and_no_movement'
   # Sensitivity analysis
-  'low_mu_v1',
-  'high_mu_v1',
-  'high_pMI',
-  'low_movement',
-  'high_movement',
+  , 'low_mu_v1'
+  , 'high_mu_v1'
+  , 'high_pMI'
+  , 'low_movement'
+  , 'high_movement'
   # Interventions
-  'reduce_mosquitoes',
-  # 'reduce_NHP_movement',
-  'shift_vax',
-  'combined_interventions',
-  'reduce_mosquitoes_high_R0',
-  # 'reduce_NHP_movement_high_R0',
-  'shift_vax_high_R0',
-  'combined_interventions_high_R0'
+  , 'reduce_mosquitoes'
+  , 'shift_vax'
+  , 'limit_monkey_movement'
+  , 'combined_interventions'
+  # Interventions - increased R0
+  , 'reduce_mosquitoes_high_R0'
+  , 'shift_vax_high_R0'
+  , 'limit_monkey_movement_high_R0'
+  , 'combined_interventions_high_R0'
 )
-
 
 # Helper functions for simulation event setup
 # Return a list of time vectors matching the length of parameter sets
-get_times_list <- function(times_short, times_long, n_short = 10, n_long = 8) {
+get_times_list <- function(times_short, times_long, n_short = 9, n_long = 8) {
   c(rep(list(times_short), n_short), rep(list(times_long), n_long))
 }
 
-# Identify event time indices where K is above a quantile threshold, starting after a date
-get_event_times <- function(K_ts, intervention_idx, threshold = 0.5) {
-  above_thresh <- which(K_ts > quantile(K_ts, threshold))
-  above_thresh[above_thresh >= intervention_idx]
-}
-
-# Return indices of parameter list names matching specified scenario terms
-get_scenario_indices <- function(scenario_names, match_terms) {
-  which(scenario_names %in% match_terms)
-}
-
-quant50 <- unname(quantile(k_long, 0.5))
-
-
-yfv_params_list[["reduce_mosquitoes"]]$quant50 <- quant50
-yfv_params_list[["combined_interventions"]]$quant50 <- quant50
-yfv_params_list[["reduce_mosquitoes_high_R0"]]$quant50 <- quant50
-yfv_params_list[["combined_interventions_high_R0"]]$quant50 <- quant50
-
 # Generate corresponding time lists
-times_list <- get_times_list(times_short = times, times_long = int_times, n_short = 10, n_long = 8)
+times_list <- get_times_list(times_short = times, times_long = int_times)
 
-# Get event times
-event_times <- get_event_times(K_ts = k_long, intervention_idx = intervention_date_id)
+# Return indices of parameter list names with partial matching
+get_scenario_indices <- function(scenario_names, match_terms) {
+  matches <- sapply(scenario_names, function(name) {
+    any(sapply(match_terms, function(term) grepl(term, name)))
+  })
+  which(matches)
+}
 
 # Get scenario indices where events should apply
-specific_idx <- get_scenario_indices(names(yfv_params_list),
-                                     match_terms = c('reduce_mosquitoes', 'combined_interventions'))
+specific_idx <- get_scenario_indices(names(yfv_params_list), match_terms = c('reduce', 'combined'))
+
+# Get event times
+event_times <- rainy_windows
+
 
