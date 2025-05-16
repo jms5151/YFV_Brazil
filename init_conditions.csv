@@ -2,10 +2,8 @@ variable,definition,mean_value,sd,minimum,maximum,nonnumeric_value
 start_date,Starting date for simulations,,,,,11/1/2016
 end_date,Ending date for simulations,,,,,12/15/2018
 start_date_vaccination,Start date of vaccination campgain,,,,,4/1/2017
-humans,Human population of Bella Horizontal,6000000,,,,
-mosquitoes,Initial Aedes aegypti mosquito population,300000,100000,,,
-monkeys,Initial monkey population,35000,10000,,,
-inForest,Initial proportion of monkey population in forest (compared with city),0.7,0.1,,,
+humans,Human population of Bella Horizontal,500000,,,,
+mosquitoes,Initial Aedes aegypti mosquito population,30000,5000,,,
+monkeys,Initial monkey population,500,100,,,
 vaccinated,Percent of population vaccinated pre-epidemic,0.5,,,,
-hg_prop,Initial proportion of Haemagogus mosquitoes relative to Aedes aegypti,,,0.1,0.5,
-insecticide_effect,Denominator to reduce Aedes aegypti population size due to insecticide use,2,,,,
+hg_prop,Initial proportion of Haemagogus mosquitoes relative to Aedes aegypti,,,0.15,0.35,

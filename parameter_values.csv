@@ -23,6 +23,6 @@ initial_v,Percent of population vaccinated at start of epidemic,0.5,,
 final_v,Percent of population vaccinated at end of epidemic,0.9,,
 p,Probability hg biting a NHP (vs a human),0.7,,
 K,Carrying capacity,,4.00E+05,7.00E+06
-monkey_seed,Movement of Howler monkeys from the forest to the city ,50,5,100
+monkey_seed,Movement of Howler monkeys from the forest to the city ,100,5,200
 marmoset_seed,Movement of marmosets from the forest to the city ,75,10,150
 mosquito_seed,Movement of Haemogogus mosquitos from the forest to the city,10,1,100

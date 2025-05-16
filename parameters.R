@@ -1,3 +1,6 @@
+# load library
+# library(lubridate)
+
 # Load parameter and initial condition data
 p <- read.csv('parameter_values.csv')
 IC <- read.csv('init_conditions.csv')
@@ -24,17 +27,18 @@ v_ts <- c(rep(0, pre_vax_days), rep(vaccination_rate, post_vax_days))
 k <- seasonal_forcing(times, high = p$high_value[p$variable == 'K'], low = p$low_value[p$variable == 'K'])
 br_aa <- seasonal_forcing(times, high = p$high_value[p$variable == 'mu_aa'], low = p$low_value[p$variable == 'mu_aa'])
 br_hg <- seasonal_forcing(times, high = p$high_value[p$variable == 'mu_hg'], low = p$low_value[p$variable == 'mu_hg'])
-a_vals <- seasonal_forcing(times, high = p$low_value[p$variable == 'a'], low = p$low_value[p$variable == 'a'])
+a_vals <- seasonal_forcing(times, high = p$high_value[p$variable == 'a'], low = p$low_value[p$variable == 'a'])
 
 # External forest seeding (immigration)
-trend <- c(seq(0.6, 0.3, length = 300)
-           , seq(0.3, 1, length = 300)
+# for long term, perhaps just keep the values low (maybe between 0.001 and 0.2)
+trend <- c(seq(1.25, 0.3, length = 300)
+           , seq(0.3, 4, length = 300)
            , rep(0.001, length = length(times) - (300+300)))
 
 # plot(yfv_epidemic, rising_trend, type = 'l')
 # Optional: add a sharp seasonal pattern
-base_season <- seasonal_forcing(times, high = 1, low = 0, phase = -pi/6)
-sharpened_season <- base_season^8  # adjust exponent for sharper peaks
+base_season <- seasonal_forcing(times, high = 1, low = 0, phase = -pi/4)
+sharpened_season <- base_season^7  # adjust exponent for sharper peaks
 
 # Combine to get final monkey seeding
 monkey_seeding_vals <-  p$value[p$variable == 'monkey_seed'] * sharpened_season * trend
@@ -48,7 +52,6 @@ Kapprox <- approxfun(times, k)
 br1approx <- approxfun(times, br_hg)
 br2approx <- approxfun(times, br_aa)
 monkey_seed_approx <- approxfun(times, monkey_seeding_vals)
-marmoset_seed_approx <- approxfun(times, marmoset_seeding_vals)
 marmoset_seed_approx <- approxfun(times, marmoset_seeding_vals)
 hg_seed_approx <- approxfun(times, hg_seeding_vals)
 
@@ -166,7 +169,13 @@ a_vals_long <- seasonal_forcing(int_times, p$high_value[p$variable == 'a'], p$lo
 br_aa_long <- seasonal_forcing(int_times, p$high_value[p$variable == 'mu_aa'], p$low_value[p$variable == 'mu_aa'])
 br_hg_long <- seasonal_forcing(int_times, p$high_value[p$variable == 'mu_hg'], p$low_value[p$variable == 'mu_hg'])
 k_long <- seasonal_forcing(int_times, p$high_value[p$variable == 'K'], p$low_value[p$variable == 'K'])
-v_ts_long <- c(v_ts, rep(0, length(int_times) - length(v_ts)))
+v_ts_long <- c(v_ts, rep(0.0001, length(int_times) - length(v_ts)))
+
+base_season_long <- seasonal_forcing(seq(length(times)+1, length(int_times), 1), high = 0.2, low = 0.001, phase = -pi) 
+trend_long <- c(seq(0.01, 0.2, length = 10), rep(1, length(int_times) - length(times) - 10))
+monkey_seeding_long <- c(monkey_seeding_vals, p$value[p$variable == 'monkey_seed'] * base_season_long * trend_long)
+marmoset_seeding_long <- c(marmoset_seeding_vals, p$value[p$variable == 'marmoset_seed'] * base_season_long * trend_long)
+hg_seeding_long <- c(hg_seeding_vals, p$value[p$variable == 'mosquito_seed'] * base_season_long * trend_long)
 
 # Approxfuns for interventions
 a_approx_long <- approxfun(int_times, a_vals_long)
@@ -174,6 +183,9 @@ br_hg_approx_long <- approxfun(int_times, br_hg_long)
 br_aa_approx_long <- approxfun(int_times, br_aa_long)
 V_approx_long <- approxfun(int_times, v_ts_long)
 K_approx_long <- approxfun(int_times, k_long)
+monkey_seed_approx_long <- approxfun(int_times, monkey_seeding_long)
+marmoset_seed_approx_long <- approxfun(int_times, marmoset_seeding_long)
+hg_seed_approx_long <- approxfun(int_times, hg_seeding_long)
 
 # Update parameters
 interventions_update <- list(
@@ -181,16 +193,15 @@ interventions_update <- list(
   birth_hg = br_hg_approx_long,
   birth_aa = br_aa_approx_long,
   V = V_approx_long,
-  K = K_approx_long
+  K = K_approx_long,
+  monkey_seed = monkey_seed_approx_long,
+  marmoset_seed = marmoset_seed_approx_long,
+  hg_seed = hg_seed_approx_long
 )
 
 yfv_params_interventions <- adjust_params(yfv_params_interventions, interventions_update)
 
-# Reduce mosquitoes
-# right now, implemented as instantaneous reduction of 50% when threshold reached
-# Maybe instead it should be gradual reductions during rainy season?
-
-
+# Reduce mosquitoes: set up event to emulate vector control efforts every rainy season
 # Set a threshold (you can adjust slightly based on signal sharpness)
 threshold <- quantile(br_aa_long, 0.9)  
 
@@ -201,9 +212,27 @@ rainy_start_days <- which(diff(br_aa_long > threshold) == 1)
 rainy_windows <- lapply(rainy_start_days, function(day) {
   list(
     start_day = day,
-    end_day = day + 30  # Say, intervention lasts 30 days
+    end_day = day + 30  # intervention lasts 30 days
   )
 })
+
+event_function_reduce_mosquitoes <- function(t, state, parameters) {
+  for (window in rainy_windows) {
+    if (t >= window$start_day && t <= window$end_day) {
+      
+      # apply cosine smoothing reduction
+      fraction <- (t - window$start_day) / (window$end_day - window$start_day)
+      smooth_ramp <- 0.5 * (1 - cos(pi * fraction))  # 0 → 1 smoothly over window
+      
+      final_reduction <- 0.5  # Target 50% final reduction
+      daily_multiplier <- 1 - (1 - final_reduction) * smooth_ramp
+      
+      # Apply the gradual decrease
+      state['Saa'] <- state['Saa'] * daily_multiplier
+    }
+  }
+  return(state)
+}
 
 vector_control <- yfv_params_interventions
 
@@ -213,19 +242,23 @@ intervention_date <- as.Date('2016-12-15')
 intervention_date_id <- which(yfv_epidemic == intervention_date)
 
 vax_start_i <- intervention_date_id + 30
-vax_early <- c(rep(0, vax_start_i), rep(vaccination_rate, length(v_ts_long) - vax_start_i))
+vax_early <- c(v_ts[vax_start_i:length(v_ts)], rep(1/365, length(int_times) - (length(v_ts)-vax_start_i) - 1))
 vax_early <- approxfun(int_times, vax_early)
 
 early_vax <- yfv_params_interventions
 early_vax$V <- vax_early
 
 # limit movement of howler monkeys
+monkey_consevation <- monkey_seeding_long
+monkey_consevation[(length(times) + 1):length(int_times)] <- monkey_consevation[(length(times) + 1):length(int_times)]/2
+monkey_consevation <- approxfun(int_times, monkey_consevation)
+
 limit_monkey_movement <- yfv_params_interventions
-limit_monkey_movement$monkey_seed <- monkey_seed_low
+limit_monkey_movement$monkey_seed <- monkey_consevation
 
 # combine interventions
 interventions_combined <- early_vax
-interventions_combined$monkey_seed <- monkey_seed_low
+interventions_combined$monkey_seed <- monkey_consevation
 
 # Interventions - increased R0 ----------------------------------
 scale_R0 <- function(params) {
