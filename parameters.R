@@ -173,9 +173,9 @@ v_ts_long <- c(v_ts, rep(0.0001, length(int_times) - length(v_ts)))
 
 base_season_long <- seasonal_forcing(seq(length(times)+1, length(int_times), 1), high = 0.2, low = 0.001, phase = -pi) 
 trend_long <- c(seq(0.01, 0.2, length = 10), rep(1, length(int_times) - length(times) - 10))
-monkey_seeding_long <- c(monkey_seeding_vals, p$value[p$variable == 'monkey_seed'] * base_season_long * trend_long)
-marmoset_seeding_long <- c(marmoset_seeding_vals, p$value[p$variable == 'marmoset_seed'] * base_season_long * trend_long)
-hg_seeding_long <- c(hg_seeding_vals, p$value[p$variable == 'mosquito_seed'] * base_season_long * trend_long)
+monkey_seeding_long <- c(monkey_seeding_vals, p$value[p$variable == 'monkey_seed']/3 * base_season_long * trend_long)
+marmoset_seeding_long <- c(marmoset_seeding_vals, p$value[p$variable == 'marmoset_seed']/2 * base_season_long * trend_long)
+hg_seeding_long <- c(hg_seeding_vals, p$value[p$variable == 'mosquito_seed']/2 * base_season_long * trend_long)
 
 # Approxfuns for interventions
 a_approx_long <- approxfun(int_times, a_vals_long)
@@ -217,22 +217,61 @@ rainy_windows <- lapply(rainy_start_days, function(day) {
 })
 
 event_function_reduce_mosquitoes <- function(t, state, parameters) {
-  for (window in rainy_windows) {
-    if (t >= window$start_day && t <= window$end_day) {
-      
-      # apply cosine smoothing reduction
-      fraction <- (t - window$start_day) / (window$end_day - window$start_day)
-      smooth_ramp <- 0.5 * (1 - cos(pi * fraction))  # 0 → 1 smoothly over window
-      
-      final_reduction <- 0.5  # Target 50% final reduction
-      daily_multiplier <- 1 - (1 - final_reduction) * smooth_ramp
-      
-      # Apply the gradual decrease
-      state['Saa'] <- state['Saa'] * daily_multiplier
+  state <- unlist(state)
+  
+  # Always apply import
+  if (abs(t - 15) < 1e-6) {
+    state['Ic'] <- state['Ic'] + 10
+  }
+  
+  # Only apply mosquito control if rainy_windows is defined
+  if (!is.null(parameters$rainy_windows)) {
+    for (window in parameters$rainy_windows) {
+      if (t >= window$start_day && t <= window$end_day) {
+        fraction <- (t - window$start_day) / (window$end_day - window$start_day)
+        smooth_ramp <- 0.5 * (1 - cos(pi * fraction))
+        final_reduction <- 0.5
+        daily_multiplier <- 1 - (1 - final_reduction) * smooth_ramp
+        
+        Saa0 <- state['Saa']
+        Shg0 <- state['Shg']
+        
+        state['Saa'] <- Saa0 * daily_multiplier
+        state['Eaa'] <- state['Eaa'] * daily_multiplier
+        state['Iaa'] <- state['Iaa'] * daily_multiplier
+        state['Shg'] <- Shg0 * daily_multiplier
+        state['Ehg'] <- state['Ehg'] * daily_multiplier
+        state['Ihg'] <- state['Ihg'] * daily_multiplier
+      }
     }
   }
+  
   return(state)
 }
+
+  
+# event_function_reduce_mosquitoes <- function(t, state, parameters) {
+#   for (window in rainy_windows) {
+#     if (t >= window$start_day && t <= window$end_day) {
+#       
+#       # apply cosine smoothing reduction
+#       fraction <- (t - window$start_day) / (window$end_day - window$start_day)
+#       smooth_ramp <- 0.5 * (1 - cos(pi * fraction))  # 0 → 1 smoothly over window
+#       
+#       final_reduction <- 0.5  # Target 50% final reduction
+#       daily_multiplier <- 1 - (1 - final_reduction) * smooth_ramp
+#       
+#       # Apply the gradual decrease
+#       state['Saa'] <- state['Saa'] * daily_multiplier
+#       state['Eaa'] <- state['Saa'] * daily_multiplier
+#       state['Iaa'] <- state['Saa'] * daily_multiplier
+#       state['Shg'] <- state['Shg'] * daily_multiplier
+#       state['Ehg'] <- state['Shg'] * daily_multiplier
+#       state['Ihg'] <- state['Shg'] * daily_multiplier
+#     }
+#   }
+#   return(state)
+# }
 
 vector_control <- yfv_params_interventions
 
@@ -342,6 +381,8 @@ get_scenario_indices <- function(scenario_names, match_terms) {
 specific_idx <- get_scenario_indices(names(yfv_params_list), match_terms = c('reduce', 'combined'))
 
 # Get event times
-event_times <- rainy_windows
+event_times <- unlist(rainy_windows)
+
+
 
 

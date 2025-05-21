@@ -24,15 +24,17 @@ resultsNew <- foreach(yfv_params_idx = 1:length(yfv_params_list), .packages = 'd
     yfv_params <- yfv_params_list[[yfv_params_idx]]
     times <- times_list[[yfv_params_idx]]
     
-    # Determine if the event function should be applied
-    event_setting <- if (yfv_params_idx %in% specific_idx) {
-      list(func = event_function_reduce_mosquitoes, time = event_times)
+    if (!is.null(yfv_params$rainy_windows)) {
+      rainy_days <- unlist(lapply(yfv_params$rainy_windows, function(w) w$start_day:w$end_day))
+      event_times_final <- sort(unique(c(15, rainy_days)))
     } else {
-      NULL
+      event_times_final <- 15
     }
     
-    event_setting <- list(func = event_function_importI, time = c(15))
-    
+    event_setting <- list(
+      func = event_function_reduce_mosquitoes,
+      time = event_times_final
+    )
 
     result <- as.data.frame(
       ode(

@@ -3,7 +3,7 @@ start_date,Starting date for simulations,,,,,11/1/2016
 end_date,Ending date for simulations,,,,,12/15/2018
 start_date_vaccination,Start date of vaccination campgain,,,,,4/1/2017
 humans,Human population of Bella Horizontal,500000,,,,
-mosquitoes,Initial Aedes aegypti mosquito population,30000,5000,,,
+mosquitoes,Initial Aedes aegypti mosquito population,30000,10000,,,
 monkeys,Initial monkey population,500,100,,,
 vaccinated,Percent of population vaccinated pre-epidemic,0.5,,,,
-hg_prop,Initial proportion of Haemagogus mosquitoes relative to Aedes aegypti,,,0.15,0.35,
+hg_prop,Initial proportion of Haemagogus mosquitoes relative to Aedes aegypti,,,0.15,0.45,

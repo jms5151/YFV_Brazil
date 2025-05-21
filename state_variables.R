@@ -46,13 +46,13 @@ for (i in 1:N) {
 }
 
 # create event function for initial infected import
-event_function_importI <- function(t, state, parameters) {
-  if (abs(t - 15) < 1e-6) {
-    state['Ic'] <- state['Ic'] + 10  
-    # state['Ip'] <- state['Ip'] + 1  
-    # state['Ihg'] <- state['Ihg'] + 5  
-    
-  }
-  return(state)
-}
+# event_function_importI <- function(t, state, parameters) {
+#   if (abs(t - 15) < 1e-6) {
+#     state['Ic'] <- state['Ic'] + 10  
+#     # state['Ip'] <- state['Ip'] + 1  
+#     # state['Ihg'] <- state['Ihg'] + 5  
+#     
+#   }
+#   return(state)
+# }
 

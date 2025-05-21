@@ -61,10 +61,10 @@ yfv_model <- function(t, state, parameters) {
     dEaa <-  lambda_aa * Saa - (PDR_aa + mu_aa) * Eaa
     dIaa <-  PDR_aa * Eaa - mu_aa * Iaa
     
-    list(c(dSp, dIp, dRp, dSc, dIc, dRc,
+    return(list(c(dSp, dIp, dRp, dSc, dIc, dRc,
            dSh, dEh, dIh, dRh,
            dShg, dEhg, dIhg,
-           dSaa, dEaa, dIaa))
+           dSaa, dEaa, dIaa)))
   })
 }
 

@@ -59,7 +59,7 @@ get_medians <- function(dflist){
     ) %>%
     mutate('model' = names(yfv_params_list)[i])
 
-  if(grepl('reduce|shift|combined', unique(df2$model))==T){
+  if(grepl('reduce|limit|shift|combined', unique(df2$model))==T){
     end_date_new <- start_date + (nrow(df2) - 1)
     df2$Date <- seq.Date(from = start_date, to = end_date_new, by = 1)
   } else {
@@ -132,7 +132,7 @@ for(i in 1:length(yfv_params_list)){ #
     as.data.frame()
   
   # add observed data
-  if(grepl('reduce|shift|combined', unique(df2$model))==T){
+  if(grepl('reduce|limit|shift|combined', unique(df2$model))==T){
     df_long_median <- rbind(df_long_median, val_data_long[,colnames(df_long_median)])
   } else {
     x <- val_data_long %>%
@@ -336,7 +336,7 @@ move_comparison_plot <- create_comparison_plot(
 sensitivity_plot <- ggarrange(mu_comparison_plot, p_comparison_plot, move_comparison_plot, ncol = 1)
 ggsave(filename = '../Figures/Sensitivity_plot.pdf', sensitivity_plot, width = 12, height = 9)
 
-# Interventions 
+# Interventions ----------------------
 int_compare <- do.call(rbind, list(full_model, reduce_mosquitoes, limit_monkey_movement, shift_vax, combined_interventions))
 int_compare <- int_compare[!duplicated(int_compare), ]
 int_compare <- subset(int_compare, variable == 'Infected people')
@@ -381,7 +381,7 @@ intervention_comparison_plot_short <- create_comparison_plot(
        , subtitle = 'Short-term interventions'
        , y = 'Human YFV cases'
        , x = '') +
-  ylim(0,1000)
+  ylim(0,3000)
 
 
 intervention_comparison_plot_long <- create_comparison_plot(
@@ -397,7 +397,7 @@ intervention_comparison_plot_long <- create_comparison_plot(
        , subtitle = 'Long-term interventions'
        , y = ''
   ) +
-  ylim(0,1000)
+  ylim(0,3000)
 
 # Intervention plot with higher R0 here
 int_compare_high_R0 <- do.call(rbind, list(full_model, reduce_mosquitoes_high_R0, limit_monkey_movement_high_R0, shift_vax_high_R0, combined_interventions_high_R0))
@@ -428,10 +428,8 @@ intervention_comparison_plot_high_R0 <- create_comparison_plot(
        , subtitle = 'Long-term interventions, higher transmission rate'
        , y = ''
        , x = ''
-  ) +  ylim(0,1000)
+  ) +  ylim(0,3000)
 
 
-library(ggpubr)
 intervention_plots <- ggarrange(intervention_comparison_plot_short, intervention_comparison_plot_long, intervention_comparison_plot_high_R0, ncol = 3)
-
 ggsave(filename = '../Figures/Intervention_comparison_plot.pdf', plot = intervention_plots, width = 12.5, height = 3.5)
