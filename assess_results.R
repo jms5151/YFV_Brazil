@@ -1,5 +1,7 @@
 # load librariesMore actions
 library(tidyverse)
+library(ggbreak)
+library(patchwork)
 library(ggpubr)
 
 # load model results
@@ -356,7 +358,7 @@ int_compare$model <- factor(int_compare$model, levels = c('Observed'
                                                           , 'reduce_mosquitoes'
                                                           , 'shift_vax'
                                                           , 'combined_interventions'
-))
+                                                          ))
 
 # Define custom colors
 int_comp_colors <- c('reduce_mosquitoes' = '#ff595e'
@@ -422,7 +424,7 @@ int_compare_high_R0$model <- factor(int_compare_high_R0$model, levels = c('Obser
                                                                           , 'reduce_mosquitoes'
                                                                           , 'shift_vax'
                                                                           , 'combined_interventions'
-))
+                                                                          ))
 df = int_compare_high_R0
 df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_p25', 'I_p75')] <- lapply(df[df$model != 'Observed' & df$variable == 'Infected people', c('value', 'I_p25', 'I_p75')], function(x) x * rho_humans)
 
@@ -449,7 +451,7 @@ intervention_comparison_plot_high_R0 <- create_comparison_plot(
     axis.line.y.right = element_blank()
   )
 
-intervention_plots <- (intervention_comparison_plot_short / (intervention_comparison_plot_long + intervention_comparison_plot_high_R0)) + 
-  plot_layout(heights = c(1, 2))
+long_int_plots <- (intervention_comparison_plot_long + intervention_comparison_plot_high_R0)
+intervention_plots <- ggarrange(intervention_comparison_plot_short, long_int_plots, ncol = 1) 
 
 ggsave(filename = '../Figures/Intervention_comparison_plot.pdf', plot = intervention_plots, width = 9, height = 6)
