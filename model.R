@@ -42,13 +42,13 @@ yfv_model <- function(t, state, parameters) {
     
     # Marmosets
     dSc <- -alpha_val * b * Ihg / Nc * Sc + mu_c * (Nc - Sc) + marmoset_seed_val
-    dIc <-  alpha_val * b * Ihg / Nc * Sc - gamma_c * Ic - mu_c * Ic - mu_v3 * Ic
+    dIc <-  alpha_val * b * Ihg / Nc * Sc - gamma_c * Ic - mu_c * Ic - mu_v2 * Ic
     dRc <-  gamma_c * Ic - mu_c * Rc
     
     # Humans
     dSh <- -lambda_h * Sh + mu_h * (Nh - Sh) - V_val * Sh
     dEh <-  lambda_h * Sh - delta_h * Eh - mu_h * Eh - V_val * Eh
-    dIh <-  delta_h * Eh - gamma_h * Ih - mu_h * Ih - mu_v2 * Ih - V_val * Ih
+    dIh <-  delta_h * Eh - gamma_h * Ih - mu_h * Ih - mu_v3 * Ih - V_val * Ih
     dRh <-  gamma_h * Ih - mu_h * Rh + V_val * (Sh + Eh + Ih)
     
     # Haemagogus mosquitoes

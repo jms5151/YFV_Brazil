@@ -251,15 +251,15 @@ mod_compare$model <- factor(mod_compare$model, levels = c('full_model', 'constan
 
 # Define custom colors
 mod_comp_colors <- c('full_model' = '#149889'
-                     , 'constant_bite_rate_and_no_movement' = '#c5a030'
                      , 'constant_bite_rate' = '#82118e'
+                     , 'constant_bite_rate_and_no_movement' = '#c5a030'
                      , 'no_movement' = '#2e3d54'
 )
 
 # Custom labels for the legend
-mod_comp_labels <- c('full_model' = 'Seasonal primate movement & seasonal biting rate'
-                     , 'constant_bite_rate_and_no_movement' = 'No primate movement or seasonally-driven biting rate'
-                     , 'constant_bite_rate' = 'Seasonally-driven primate movement'
+mod_comp_labels <- c('full_model' = 'Seasonal forest species movement & seasonal biting rate'
+                     , 'constant_bite_rate_and_no_movement' = 'No seasonally-driven forest species movement or biting rate'
+                     , 'constant_bite_rate' = 'Seasonally-driven  forest species movement'
                      , 'no_movement' = 'Seasonally-driven biting rate'
 )
 
@@ -270,8 +270,8 @@ left_plot <-  create_comparison_plot(df = left_panel, custom_colors = mod_comp_c
 right_plot <-  create_comparison_plot(df = right_panel, custom_colors = mod_comp_colors, custom_labels = mod_comp_labels, plotType = 1) + xlim(start_date, end_date - 180) + ylab('')
 
 model_comparison_plot <- (left_plot + right_plot) + 
-  plot_layout(guides = "collect") & 
-  theme(legend.position = "bottom")
+  plot_layout(guides = 'collect', axis_titles = 'collect') & 
+  theme(legend.position = 'bottom')
 
 ggsave(filename = '../Figures/Model_comparison_plot.pdf', plot = model_comparison_plot, width = 8, height = 8.5)
 
@@ -290,7 +290,7 @@ mu_comparison_plot <- create_comparison_plot(
   , custom_labels = mu_labels
   , titleName = 'YFV-induced howler monkey mortality rate'
   , plotType = 2
-) + 
+  ) + 
   guides(fill = guide_legend(title = 'YFV-induced howler monkey mortality rate')
          , color = guide_legend(title = 'YFV-induced howler monkey mortality rate')) +
   theme(legend.position = c(0.16, 0.6)
