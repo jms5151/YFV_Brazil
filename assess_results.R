@@ -1,4 +1,4 @@
-# load librariesMore actions
+# load libraries
 library(tidyverse)
 library(ggbreak)
 library(patchwork)
@@ -74,7 +74,8 @@ get_medians <- function(dflist){
   return(df2)
 }
 
-# calculate correlations between simulations and observations
+
+# calculate correlations and RMSE between simulations and observations
 calc_correlation <- function(df, rho, var1, var2){
   # add observed data
   x2 <- df %>% left_join(val_data) %>% as.data.frame()
@@ -85,13 +86,15 @@ calc_correlation <- function(df, rho, var1, var2){
   corrsum <- cor.test(x3[,var1], x3[,var2])
   corVal <- round(corrsum$estimate, 2)
   corPval <- round(corrsum$p.value, 3)
+  meanObs <- mean(x3[,var2], na.rm = TRUE)
+  nrmse <- round(sqrt(mean((x3[,var1] - x3[,var2])^2, na.rm = TRUE))/meanObs)
   # create output
-  dist_out <- data.frame('corr' = corVal, 'pvalue' = corPval)
+  dist_out <- data.frame('corr' = corVal, 'pvalue' = corPval, 'nrmse' = nrmse)
   return(dist_out)
 }
 
-corDF <- data.frame(matrix(nrow = 0, ncol = 5))
-colnames(corDF) <- c('model', 'correlation_humans', 'pvalue_humans', 'correlation_primates', 'pvalue_primates')
+corDF <- data.frame(matrix(nrow = 0, ncol = 7))
+colnames(corDF) <- c('model', 'correlation_humans', 'pvalue_humans', 'nrmse_humans', 'correlation_primates', 'pvalue_primates', 'nrmse_primates')
 
 for(i in 1:10){
   x <- get_medians(dflist = resultsNew[[i]])
@@ -100,8 +103,9 @@ for(i in 1:10){
   corDF[i,] <- c(unique(x$model), corHuman, corPrimates)
 }
 
-corDF[,c('correlation_humans', 'correlation_primates')] <- lapply(corDF[,c('correlation_humans', 'correlation_primates')], function(x) as.numeric(x))
+# corDF[,c('correlation_humans', 'correlation_primates')] <- lapply(corDF[,c('correlation_humans', 'correlation_primates')], function(x) as.numeric(x))
 corDF$average_correlation <- rowMeans(corDF[,c('correlation_humans', 'correlation_primates')])
+corDF$average_nrmse <- rowMeans(corDF[,c('nrmse_humans', 'nrmse_primates')])
 
 write.csv(corDF, 'model_validation.csv', row.names = F)
 
