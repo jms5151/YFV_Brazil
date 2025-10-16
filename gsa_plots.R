@@ -1,15 +1,23 @@
 library(ggplot2)
 library(dplyr)
 
-# Your sensitivity results data
 sensitivity_results <- read.csv('../sensitivity_analysis_output.csv')
 
-baseline_results <- read.csv('model_validation.csv')
+# ============================================================================
+# Extract baseline values from the data
+# ============================================================================
 
-baseline_NRMSE_humans <- baseline_results$nrmse_humans[1]
-baseline_Correlation_humans <- baseline_results$correlation_humans[1]  
-baseline_NRMSE_primates <- baseline_results$nrmse_primates[1]
-baseline_Correlation_primates <- baseline_results$correlation_primates[1]
+baseline_row <- sensitivity_results %>% 
+  filter(parameter == "baseline")
+
+baseline_NRMSE_humans <- baseline_row$NRMSE_humans
+baseline_Correlation_humans <- baseline_row$Correlation_humans
+baseline_NRMSE_primates <- baseline_row$NRMSE_primates
+baseline_Correlation_primates <- baseline_row$Corrleation_primates  # Note: typo in column name
+
+# Remove baseline row from sensitivity results (we only want parameters)
+sensitivity_params <- sensitivity_results %>% 
+  filter(parameter != "baseline")
 
 # ============================================================================
 # Prepare data for tornado plot
@@ -27,8 +35,47 @@ baseline_value <- switch(metric_column,
                          "Corrleation_primates" = baseline_Correlation_primates
 )
 
+# Create a function to format parameter names with Greek letters and subscripts
+format_parameter_names <- function(param_names) {
+  sapply(param_names, function(p) {
+    # Handle mu with subscripts
+    if (grepl("^mu_", p)) {
+      subscript <- sub("^mu_", "", p)
+      return(bquote(mu[.(subscript)]))
+    }
+    # Handle gamma with subscripts
+    else if (grepl("^gamma_", p)) {
+      subscript <- sub("^gamma_", "", p)
+      return(bquote(gamma[.(subscript)]))
+    }
+    # Handle delta with subscripts
+    else if (grepl("^delta_", p)) {
+      subscript <- sub("^delta_", "", p)
+      return(bquote(delta[.(subscript)]))
+    }
+    # Handle pMI with subscripts
+    else if (grepl("^pMI", p)) {
+      subscript <- sub("^pMI", "", p)
+      return(bquote(pMI[.(subscript)]))
+    }
+    # Handle PDR with subscripts
+    else if (grepl("^PDR_", p)) {
+      subscript <- sub("^PDR_", "", p)
+      return(bquote(PDR[.(subscript)]))
+    }
+    # Handle b (transmission rate - could use beta if preferred)
+    else if (p == "b") {
+      return(bquote(b))  # or return(bquote(beta)) for Greek beta
+    }
+    # Default: return as-is
+    else {
+      return(p)
+    }
+  }, USE.NAMES = FALSE)
+}
+
 # Reshape data to get low and high values for each parameter
-tornado_data <- sensitivity_results %>%
+tornado_data <- sensitivity_params %>%
   group_by(parameter) %>%
   summarise(
     value_low = min(.data[[metric_column]]),
@@ -36,7 +83,10 @@ tornado_data <- sensitivity_results %>%
     range = abs(value_high - value_low)
   ) %>%
   arrange(desc(range)) %>%
-  mutate(parameter = factor(parameter, levels = parameter))
+  mutate(
+    parameter_original = parameter,
+    parameter = factor(parameter, levels = parameter)
+  )
 
 # ============================================================================
 # Create tornado plot
@@ -49,6 +99,9 @@ x_label <- switch(metric_column,
                   "NRMSE_primates" = "NRMSE - Primates (lower = better fit)",
                   "Corrleation_primates" = "Correlation - Primates (higher = better fit)"
 )
+
+# Create formatted labels for y-axis
+formatted_labels <- format_parameter_names(levels(tornado_data$parameter))
 
 # Create the plot
 tornado_plot <- ggplot(tornado_data, aes(y = parameter)) +
@@ -74,6 +127,7 @@ tornado_plot <- ggplot(tornado_data, aes(y = parameter)) +
     hjust = -0.1, 
     size = 4
   ) +
+  scale_y_discrete(labels = formatted_labels) +
   labs(
     title = "Tornado Plot: Parameter Sensitivity Analysis",
     subtitle = paste("Metric:", gsub("_", " ", metric_column), "| Variation: ±20%"),
@@ -109,30 +163,49 @@ summary_table <- tornado_data %>%
 print(summary_table)
 
 # ============================================================================
+# Check if baseline falls within ranges (diagnostic)
+# ============================================================================
+
+cat("\n=== Diagnostic: Does baseline fall within parameter ranges? ===\n")
+diagnostic <- tornado_data %>%
+  mutate(
+    baseline_in_range = (baseline_value >= value_low & baseline_value <= value_high),
+    pct_below_baseline = round(100 * (baseline_value - value_low) / range, 1),
+    pct_above_baseline = round(100 * (value_high - baseline_value) / range, 1)
+  ) %>%
+  select(parameter, value_low, baseline = baseline_value, value_high, baseline_in_range)
+
+print(diagnostic)
+
+# ============================================================================
 # OPTIONAL: Create all four tornado plots at once
 # ============================================================================
 
-create_all_tornado_plots <- function(sensitivity_results, 
-                                     baseline_NRMSE_humans,
-                                     baseline_Correlation_humans,
-                                     baseline_NRMSE_primates,
-                                     baseline_Correlation_primates) {
+create_all_tornado_plots <- function(sensitivity_results) {
   
   library(gridExtra)
   
+  # Extract baseline values
+  baseline_row <- sensitivity_results %>% filter(parameter == "baseline")
+  sensitivity_params <- sensitivity_results %>% filter(parameter != "baseline")
+  
   metrics <- list(
-    list(col = "NRMSE_humans", baseline = baseline_NRMSE_humans, 
-         label = "NRMSE - Humans\n(lower = better)"),
-    list(col = "Correlation_humans", baseline = baseline_Correlation_humans, 
-         label = "Correlation - Humans\n(higher = better)"),
-    list(col = "NRMSE_primates", baseline = baseline_NRMSE_primates, 
-         label = "NRMSE - Primates\n(lower = better)"),
-    list(col = "Corrleation_primates", baseline = baseline_Correlation_primates, 
-         label = "Correlation - Primates\n(higher = better)")
+    list(col = "NRMSE_humans", 
+         baseline = baseline_row$NRMSE_humans, 
+         label = "NRMSE (Humans)\n(lower = better)"),
+    list(col = "Correlation_humans", 
+         baseline = baseline_row$Correlation_humans, 
+         label = "Correlation (Humans)\n(higher = better)"),
+    list(col = "NRMSE_primates", 
+         baseline = baseline_row$NRMSE_primates, 
+         label = "NRMSE (Primates)\n(lower = better)"),
+    list(col = "Corrleation_primates", 
+         baseline = baseline_row$Corrleation_primates, 
+         label = "Correlation (Primates)\n(higher = better)")
   )
   
   plot_list <- lapply(metrics, function(m) {
-    tornado_data <- sensitivity_results %>%
+    tornado_data <- sensitivity_params %>%
       group_by(parameter) %>%
       summarise(
         value_low = min(.data[[m$col]]),
@@ -142,13 +215,17 @@ create_all_tornado_plots <- function(sensitivity_results,
       arrange(desc(range)) %>%
       mutate(parameter = factor(parameter, levels = parameter))
     
+    # Format parameter labels
+    formatted_labels <- format_parameter_names(levels(tornado_data$parameter))
+    
     ggplot(tornado_data, aes(y = parameter)) +
       geom_segment(
         aes(x = value_low, xend = value_high, y = parameter, yend = parameter),
-        linewidth = 8, color = "steelblue", alpha = 0.7
+        linewidth = 2, color = "steelblue", alpha = 0.7
       ) +
       geom_vline(xintercept = m$baseline, linetype = "dashed", 
                  color = "red", linewidth = 0.8) +
+      scale_y_discrete(labels = formatted_labels) +
       labs(x = m$label, y = NULL) +
       theme_minimal(base_size = 10) +
       theme(
@@ -158,12 +235,8 @@ create_all_tornado_plots <- function(sensitivity_results,
   })
   
   grid.arrange(grobs = plot_list, ncol = 2, 
-               top = "Tornado Plots: Parameter Sensitivity Analysis (±20% variation)")
+               top = "Parameter Sensitivity Analysis (±20% variation)")
 }
 
 # Uncomment to create all four plots:
-create_all_tornado_plots(sensitivity_results,
-                         baseline_NRMSE_humans,
-                         baseline_Correlation_humans,
-                         baseline_NRMSE_primates,
-                         baseline_Correlation_primates)
+create_all_tornado_plots(sensitivity_results)

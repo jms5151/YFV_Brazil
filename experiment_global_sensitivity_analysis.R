@@ -1,5 +1,3 @@
-set.seed(42)
-
 # load the required packages
 library(foreach)
 library(doParallel)
@@ -44,23 +42,26 @@ calc_correlation <- function(df, rho, var1, var2){
   corVal <- round(corrsum$estimate, 2)
   corPval <- round(corrsum$p.value, 3)
   meanObs <- mean(x3[,var2], na.rm = TRUE)
-  nrmse <- round(sqrt(mean((x3[,var1] - x3[,var2])^2, na.rm = TRUE))/meanObs)
+  nrmse <- sqrt(mean((x3[,var1] - x3[,var2])^2, na.rm = TRUE))/meanObs
   # create output
   dist_out <- data.frame('corr' = corVal, 'pvalue' = corPval, 'nrmse' = nrmse)
   return(dist_out)
 }
 
-
-
 # adjust parameters by +/- 20% and re-run, calculate correlation and RMSE
 output_df <- data.frame(matrix(data = NA, nrow = 0, ncol = 6))
 colnames(output_df) <- c('parameter', 'percentage_change', 'NRMSE_humans', 'Correlation_humans', 'NRMSE_primates', 'Corrleation_primates')
 
-param_idx <- seq(3,21,1)
-percentage_change <- c(0.8, 1.2)
+param_idx <- seq(2,21,1) # use 2 for baseline
 
 # create a loop that goes through each parameter in param_idx and changes it by -20 or +20%, runs the model, and calculates the NRMSE and correlation for humans and primates 
 for(i in param_idx){
+  if(i == 2){
+    percentage_change <- 1
+  } else {
+    percentage_change <- c(0.8, 1.2)
+  }
+  
   for(j in percentage_change){
     yfv_params_list_tmp <- yfv_params_list$full_model
     yfv_params_list_tmp[[i]] <- yfv_params_list_tmp[[i]] * j
@@ -94,6 +95,9 @@ for(i in param_idx){
     corPrimates <- calc_correlation(df = x, rho = rho_monkeys, var1 = 'Ip', var2 = 'MG_primate')
     
     # add to output dataframe
+    if(i == 2){
+      names(yfv_params_list_tmp)[i] <- 'baseline'
+    }
     output_df <- rbind(output_df, data.frame('parameter' = names(yfv_params_list_tmp)[i],
                                              'percentage_change' = j,
                                              'NRMSE_humans' = corHuman$nrmse,
