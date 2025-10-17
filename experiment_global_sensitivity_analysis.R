@@ -38,11 +38,11 @@ idrange_nonseasonal <- which(p$variable %in% p_nonseasonal$variable &
 
 for (i in idrange_nonseasonal) {
   param_ranges[[p$variable[i]]] <- c(
-    p$low_value[i],
-    p$value[i] * 0.9, 
+    p$low_value[i] * 0.9,
+    # p$value[i] * 0.9, 
     p$value[i], 
-    p$value[i] * 1.1 
-    # p$high_value[i]
+    # p$value[i] * 1.1 
+    p$high_value[i] * 1.1
   )
 }
 
@@ -295,7 +295,7 @@ write.csv(prcc_primates_corr, '../prcc_primates_corr.csv', row.names = FALSE)
 # ============================================================================
 
 # Function to format parameter names (reuse from tornado plot)
-format_parameter_names <- function(param_names) {
+# format_parameter_names <- function(param_names) {
   sapply(param_names, function(p) {
     if (grepl("^mu_", p)) {
       subscript <- sub("^mu_", "", p)
@@ -321,6 +321,46 @@ format_parameter_names <- function(param_names) {
       return(bquote(b))
     }
     else {
+      return(p)
+    }
+  }, USE.NAMES = FALSE)
+}
+format_parameter_names <- function(param_names) {
+  sapply(param_names, function(p0) {
+    # 1) Clean suffixes first
+    p <- gsub("_amplitude|_seed", "", p0)
+    p <- gsub("(monkey|marmoset|mosquito)\\b(?!\\s*movement)", "\\1 movement", p, perl = TRUE)
+    
+    # 2) Greek/parameter formatting with optional subscripts
+    if (grepl("^alpha(_|$)", p)) {
+      subscript <- sub("^alpha_?", "", p)
+      return(if (nzchar(subscript)) bquote(alpha[.(subscript)]) else expression(alpha))
+    }
+    else if (grepl("^mu(_|$)", p)) {
+      subscript <- sub("^mu_?", "", p)
+      return(if (nzchar(subscript)) bquote(mu[.(subscript)]) else expression(mu))
+    }
+    else if (grepl("^gamma(_|$)", p)) {
+      subscript <- sub("^gamma_?", "", p)
+      return(if (nzchar(subscript)) bquote(gamma[.(subscript)]) else expression(gamma))
+    }
+    else if (grepl("^delta(_|$)", p)) {
+      subscript <- sub("^delta_?", "", p)
+      return(if (nzchar(subscript)) bquote(delta[.(subscript)]) else expression(delta))
+    }
+    else if (grepl("^pMI", p)) {                # supports pMI, pMI_x, etc.
+      subscript <- sub("^pMI_?", "", p)
+      return(if (nzchar(subscript)) bquote(pMI[.(subscript)]) else bquote(pMI))
+    }
+    else if (grepl("^PDR_", p)) {               # explicit underscore form
+      subscript <- sub("^PDR_", "", p)
+      return(bquote(PDR[.(subscript)]))
+    }
+    else if (p == "b") {
+      return(bquote(b))
+    }
+    else {
+      # 3) Return cleaned name unchanged if no special formatting matched
       return(p)
     }
   }, USE.NAMES = FALSE)
@@ -351,7 +391,7 @@ plot_prcc_barplot <- function(prcc_df, title) {
     coord_flip() +
     labs(
       title = title,
-      subtitle = paste("Based on", n_samples, "Latin Hypercube Samples"),
+      # subtitle = paste("Based on", n_samples, "Latin Hypercube Samples"),
       x = "Parameter",
       y = "Partial Rank Correlation Coefficient (PRCC)"
     ) +
@@ -367,13 +407,32 @@ plot_prcc_barplot <- function(prcc_df, title) {
 }
 
 # Create individual plots
-p1 <- plot_prcc_barplot(prcc_humans_nrmse, "PRCC: NRMSE (Humans)")
-p2 <- plot_prcc_barplot(prcc_humans_corr, "PRCC: Correlation (Humans)")
-p3 <- plot_prcc_barplot(prcc_primates_nrmse, "PRCC: NRMSE (Primates)")
-p4 <- plot_prcc_barplot(prcc_primates_corr, "PRCC: Correlation (Primates)")
+p1 <- plot_prcc_barplot(prcc_humans_nrmse, "NRMSE (Humans)")
+p2 <- plot_prcc_barplot(prcc_humans_corr, "Correlation (Humans)")
+p3 <- plot_prcc_barplot(prcc_primates_nrmse, "NRMSE (Primates)")
+p4 <- plot_prcc_barplot(prcc_primates_corr, "Correlation (Primates)")
 
-library(gridExtra)
-prcc_plots <- grid.arrange(p1, p2, p3, p4, ncol = 2)
+library(ggpubr)
+
+# make sure each plot has the SAME legend mapping and remove per-plot axis titles
+p1 <- p1 + labs(x = NULL, y = NULL)
+p2 <- p2 + labs(x = NULL, y = NULL)
+p3 <- p3 + labs(x = NULL, y = NULL)
+p4 <- p4 + labs(x = NULL, y = NULL)
+
+g <- ggarrange(
+  p1, p2, p3, p4,
+  ncol = 2, nrow = 2,
+  align = "hv",
+  common.legend = TRUE, legend = "bottom"
+)
+
+prcc_plots <- annotate_figure(
+  g,
+  top    = text_grob("PRCC Results (n = 1000 LHS samples)", face = "bold", size = 14),
+  left   = text_grob("Parameter", rot = 90, vjust = 1),
+  bottom = text_grob("Partial Rank Correlation Coefficient (PRCC)", vjust = -0.5)
+)
 
 ggsave(filename = '../Figures/PRCC.pdf', plot = prcc_plots, width = 10, height = 8)
 # ============================================================================
